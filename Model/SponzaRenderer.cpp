@@ -274,7 +274,7 @@ void Sponza::RenderScene(
 
     psConstants.sunDirection = m_SunDirection;
     psConstants.sunLight = Vector3(1.0f, 1.0f, 1.0f) * m_SunLightIntensity;
-    psConstants.ambientLight = Vector3(1.0f, 1.0f, 1.0f) * m_AmbientIntensity;
+    psConstants.ambientLight = Vector3(0.0f, 0.0f, 0.0f) * m_AmbientIntensity;
     psConstants.ShadowTexelSize[0] = 1.0f / g_ShadowBuffer.GetWidth();
     psConstants.InvTileDim[0] = 1.0f / Lighting::LightGridDim;
     psConstants.InvTileDim[1] = 1.0f / Lighting::LightGridDim;

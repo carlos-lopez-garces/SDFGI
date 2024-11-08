@@ -69,15 +69,15 @@ MRT main(VSOutput vsOutput)
     float3 viewDir = normalize(vsOutput.viewDir);
     colorSum += ApplyDirectionalLight( diffuseAlbedo, specularAlbedo, specularMask, gloss, normal, viewDir, SunDirection, SunColor, vsOutput.shadowCoord, texShadow );
 
-	ShadeLights(colorSum, pixelPos,
-		diffuseAlbedo,
-		specularAlbedo,
-		specularMask,
-		gloss,
-		normal,
-		viewDir,
-		vsOutput.worldPos
-		);
+	//ShadeLights(colorSum, pixelPos,
+	//	diffuseAlbedo,
+	//	specularAlbedo,
+	//	specularMask,
+	//	gloss,
+	//	normal,
+	//	viewDir,
+	//	vsOutput.worldPos
+	//	);
 
 	mrt.Normal = normal;
 	mrt.Color = colorSum;

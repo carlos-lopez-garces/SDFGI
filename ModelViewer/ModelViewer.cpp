@@ -34,7 +34,10 @@
 #include "ShadowCamera.h"
 #include "Display.h"
 
-#define LEGACY_RENDERER
+//#define LEGACY_RENDERER
+
+#include "../Model/CompiledShaders/FullscreenQuadVS.h"
+#include "../Model/CompiledShaders/VisShadowBufferPS.h"
 
 using namespace GameCore;
 using namespace Math;
@@ -359,6 +362,80 @@ void ModelViewer::RenderScene( void )
         DepthOfField::Render(gfxContext, m_Camera.GetNearClip(), m_Camera.GetFarClip());
     else
         MotionBlur::RenderObjectBlur(gfxContext, g_VelocityBuffer);
+
+
+    //Render to full screen quad
+    {
+        RootSignature Fullscreen_RS;
+        //1. Create the root signature with 1 Descriptor Table for Depth Texture and 1 SRV Sampler for Accessing Depth Texture
+        {
+            Fullscreen_RS.Reset(0, 0);
+
+            ////// 1 Root Parameter: Descriptor Table
+            //bruh[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
+            ////// 1 Sampler for Pixel Shader
+            //SamplerDesc DepthSamplerDesc;
+            //DepthSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            //DepthSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            //DepthSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            //DepthSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            //DepthSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+
+            //bruh.InitStaticSampler(0, DepthSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+
+            Fullscreen_RS.Finalize(L"RootSig", D3D12_ROOT_SIGNATURE_FLAG_NONE);
+        }
+
+        GraphicsPSO DepthToQuadPSO(L"FullScreenPSO");
+        {
+            DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
+            DXGI_FORMAT DepthFormat = g_SceneDepthBuffer.GetFormat();
+            DXGI_FORMAT formats[1] = { ColorFormat };
+
+            DepthToQuadPSO.SetRootSignature(Fullscreen_RS);
+            D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+            DepthToQuadPSO.SetRasterizerState(rasterizerDesc);
+            DepthToQuadPSO.SetBlendState(BlendDisable);
+
+            D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+            {
+                depthStencilDesc.DepthEnable = FALSE;        // Disable depth testing
+                depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // Depth writes are not needed
+                depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS; // No depth comparisons
+
+                depthStencilDesc.StencilEnable = FALSE;      // Disable stencil testing
+                depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+                depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+            }
+            DepthToQuadPSO.SetDepthStencilState(depthStencilDesc);
+            DepthToQuadPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+            DepthToQuadPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+
+            DepthToQuadPSO.SetVertexShader(g_pFullScreenQuadVS, sizeof(g_pFullScreenQuadVS));
+            DepthToQuadPSO.SetPixelShader(g_pVisShadowBufferPS, sizeof(g_pVisShadowBufferPS));
+            DepthToQuadPSO.Finalize();
+        }
+
+        //Render Call
+        {
+            
+            gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+            gfxContext.ClearColor(g_SceneColorBuffer);
+            
+            gfxContext.SetRootSignature(Fullscreen_RS);
+            gfxContext.SetPipelineState(DepthToQuadPSO);
+            gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer());
+
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvs[]{ g_SceneColorBuffer.GetRTV() };
+            gfxContext.SetRenderTargets(ARRAYSIZE(rtvs), rtvs);
+            gfxContext.SetViewportAndScissor(viewport, scissor);
+
+            gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            gfxContext.DrawIndexed(6, 0, 0);
+        }
+
+    }
 
     gfxContext.Finish();
 }

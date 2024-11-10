@@ -366,24 +366,24 @@ void ModelViewer::RenderScene( void )
 
     //Render to full screen quad
     {
-        RootSignature Fullscreen_RS;
+        RootSignature VisShadowBufferRS;
         //1. Create the root signature with 1 Descriptor Table for Depth Texture and 1 SRV Sampler for Accessing Depth Texture
         {
-            Fullscreen_RS.Reset(0, 0);
+            VisShadowBufferRS.Reset(1, 1);
 
-            ////// 1 Root Parameter: Descriptor Table
-            //bruh[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-            ////// 1 Sampler for Pixel Shader
-            //SamplerDesc DepthSamplerDesc;
-            //DepthSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-            //DepthSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-            //DepthSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-            //DepthSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-            //DepthSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+            // 1 Root Parameter: Descriptor Table
+            VisShadowBufferRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
+            // 1 Sampler for Pixel Shader
+            SamplerDesc DepthSamplerDesc;
+            DepthSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            DepthSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            DepthSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            DepthSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            DepthSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
 
-            //bruh.InitStaticSampler(0, DepthSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+            VisShadowBufferRS.InitStaticSampler(0, DepthSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
 
-            Fullscreen_RS.Finalize(L"RootSig", D3D12_ROOT_SIGNATURE_FLAG_NONE);
+            VisShadowBufferRS.Finalize(L"RootSig", D3D12_ROOT_SIGNATURE_FLAG_NONE);
         }
 
         GraphicsPSO DepthToQuadPSO(L"FullScreenPSO");
@@ -392,7 +392,7 @@ void ModelViewer::RenderScene( void )
             DXGI_FORMAT DepthFormat = g_SceneDepthBuffer.GetFormat();
             DXGI_FORMAT formats[1] = { ColorFormat };
 
-            DepthToQuadPSO.SetRootSignature(Fullscreen_RS);
+            DepthToQuadPSO.SetRootSignature(VisShadowBufferRS);
             D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
             rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
             DepthToQuadPSO.SetRasterizerState(rasterizerDesc);
@@ -423,9 +423,14 @@ void ModelViewer::RenderScene( void )
             gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
             gfxContext.ClearColor(g_SceneColorBuffer);
             
-            gfxContext.SetRootSignature(Fullscreen_RS);
+            gfxContext.SetRootSignature(VisShadowBufferRS);
             gfxContext.SetPipelineState(DepthToQuadPSO);
             gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer());
+            D3D12_GPU_DESCRIPTOR_HANDLE baseHandle = Renderer::s_TextureHeap.GetHeapPointer()->GetGPUDescriptorHandleForHeapStart();
+            D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle;
+            unsigned int shadowMapIndexInHeap = 3; //This is just hardcoded by MiniEngine lol
+            shadowHandle.ptr = baseHandle.ptr + shadowMapIndexInHeap * g_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            gfxContext.SetDescriptorTable(0, shadowHandle);
 
             D3D12_CPU_DESCRIPTOR_HANDLE rtvs[]{ g_SceneColorBuffer.GetRTV() };
             gfxContext.SetRenderTargets(ARRAYSIZE(rtvs), rtvs);

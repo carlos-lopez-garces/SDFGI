@@ -263,7 +263,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     // Begin accumulating light starting with emissive
     float3 colorAccum = emissive;
 
-#if 0
+#if 1
     float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
@@ -274,7 +274,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.c_spec *= ssao;
 
     // Old-school ambient light
-    colorAccum += Surface.c_diff * 0.1;
+    //colorAccum += Surface.c_diff * 0.1;
 
 #else
 

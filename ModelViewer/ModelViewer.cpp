@@ -172,7 +172,9 @@ void ModelViewer::Startup( void )
 #ifdef LEGACY_RENDERER
         Sponza::Startup(m_Camera);
 #else
-        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonic/CornellWithSonic.gltf", forceRebuild);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;
@@ -279,7 +281,7 @@ void ModelViewer::RenderScene( void )
         Vector3 SunDirection = Normalize(Vector3( costheta * cosphi, sinphi, sintheta * cosphi ));
         Vector3 ShadowBounds = Vector3(m_ModelInst.GetRadius());
         //m_SunShadowCamera.UpdateMatrix(-SunDirection, m_ModelInst.GetCenter(), ShadowBounds,
-        m_SunShadowCamera.UpdateMatrix(-SunDirection, Vector3(0, -500.0f, 0), Vector3(5000, 3000, 3000),
+        m_SunShadowCamera.UpdateMatrix(-SunDirection, Vector3(0, -500.0f, 0), ShadowBounds,
             (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
 
         GlobalConstants globals;
@@ -294,11 +296,11 @@ void ModelViewer::RenderScene( void )
         gfxContext.ClearDepth(g_SceneDepthBuffer);
 
         MeshSorter sorter(MeshSorter::kDefault);
-		sorter.SetCamera(m_Camera);
-		sorter.SetViewport(viewport);
-		sorter.SetScissor(scissor);
-		sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
-		sorter.AddRenderTarget(g_SceneColorBuffer);
+		    sorter.SetCamera(m_Camera);
+		    sorter.SetViewport(viewport);
+		    sorter.SetScissor(scissor);
+		    sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
+		    sorter.AddRenderTarget(g_SceneColorBuffer);
 
         m_ModelInst.Render(sorter);
 
@@ -319,12 +321,14 @@ void ModelViewer::RenderScene( void )
                 ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
 
                 MeshSorter shadowSorter(MeshSorter::kShadows);
-				shadowSorter.SetCamera(m_SunShadowCamera);
-				shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
+				        //shadowSorter.SetCamera(m_Camera); //Mesh frustum culling does not work with the shadow matrix
+                shadowSorter.SetCamera(m_SunShadowCamera);
+				        shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
 
                 m_ModelInst.Render(shadowSorter);
 
                 shadowSorter.Sort();
+                //shadowSorter.SetCamera(m_SunShadowCamera);
                 shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
             }
 
@@ -420,8 +424,8 @@ void ModelViewer::RenderScene( void )
         //Render Call
         {
             
-            gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-            gfxContext.ClearColor(g_SceneColorBuffer);
+            //gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+            //gfxContext.ClearColor(g_SceneColorBuffer);
             
             gfxContext.SetRootSignature(VisShadowBufferRS);
             gfxContext.SetPipelineState(DepthToQuadPSO);
@@ -436,8 +440,8 @@ void ModelViewer::RenderScene( void )
             gfxContext.SetRenderTargets(ARRAYSIZE(rtvs), rtvs);
             gfxContext.SetViewportAndScissor(viewport, scissor);
 
-            gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            gfxContext.DrawIndexed(6, 0, 0);
+            //gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            //gfxContext.DrawIndexed(6, 0, 0);
         }
 
     }

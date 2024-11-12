@@ -112,6 +112,8 @@ namespace Renderer
 
         void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
 
+        void RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, GraphicsPSO& pso);
+
     private:
 
         struct SortKey

@@ -37,7 +37,10 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
-#define LEGACY_RENDERER
+#include "../Model/CompiledShaders/VoxelPassPS.h"
+#include "../Model/CompiledShaders/VoxelPassVS.h"
+
+// #define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -319,6 +322,58 @@ void ModelViewer::RenderScene( void )
     }
     else
     {
+        // -- Mike's Voxel PSO Creation --
+        // TODO: Ideally we create this PSO somewhere else, but for now, 
+        //       we'll create the PSO every frame and do the voxel render
+
+        GraphicsPSO VoxelPSO(L"Voxel Pipeline PSO");
+
+        // use default root signature
+        VoxelPSO.SetRootSignature(Renderer::m_RootSig); 
+
+        D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); 
+        rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE; 
+        VoxelPSO.SetRasterizerState(rasterizerDesc); 
+
+        VoxelPSO.SetBlendState(BlendDisable); 
+
+        DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
+        DXGI_FORMAT formats[1] = { ColorFormat };
+
+        // depth stencil description
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+        {
+            depthStencilDesc.DepthEnable = FALSE;        // Disable depth testing
+            depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // Depth writes are not needed
+            depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS; // No depth comparisons
+
+            depthStencilDesc.StencilEnable = FALSE;      // Disable stencil testing
+            depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+            depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+        }
+
+        VoxelPSO.SetDepthStencilState(depthStencilDesc);
+        VoxelPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+        VoxelPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+
+        VoxelPSO.SetVertexShader(g_pVoxelPassVS, sizeof(g_pVoxelPassVS));
+        VoxelPSO.SetPixelShader(g_pVoxelPassPS, sizeof(g_pVoxelPassPS));
+
+        // set the input layout
+        std::vector<D3D12_INPUT_ELEMENT_DESC> vertexLayout;
+        {
+            vertexLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT }); 
+            vertexLayout.push_back({ "NORMAL",   0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
+            vertexLayout.push_back({ "TANGENT",  0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
+            vertexLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+            vertexLayout.push_back({ "TEXCOORD", 1, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+        }
+
+        VoxelPSO.SetInputLayout((uint32_t)vertexLayout.size(), vertexLayout.data());
+
+        VoxelPSO.Finalize();
+
+        /*
         // Update global constants
         float costheta = cosf(g_SunOrientation);
         float sintheta = sinf(g_SunOrientation);
@@ -395,7 +450,10 @@ void ModelViewer::RenderScene( void )
 
             sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
         }
+        */
     }
+
+    /*
 
     // Some systems generate a per-pixel velocity buffer to better track dynamic and skinned meshes.  Everything
     // is static in our scene, so we generate velocity from camera motion and the depth buffer.  A velocity buffer
@@ -411,7 +469,8 @@ void ModelViewer::RenderScene( void )
         DepthOfField::Render(gfxContext, m_Camera.GetNearClip(), m_Camera.GetFarClip());
     else
         MotionBlur::RenderObjectBlur(gfxContext, g_VelocityBuffer);
-
+    
+    */
     gfxContext.Finish();
 }
 

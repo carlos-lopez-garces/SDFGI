@@ -293,7 +293,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
 
 
-    return float4(1., 0., 0., 1.);
+    return float4(colorAccum, baseColor.a);
 }
 
 

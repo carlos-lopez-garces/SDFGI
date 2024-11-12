@@ -5,7 +5,7 @@ using namespace Math;
 
 void VoxelCamera::UpdateMatrix()
 {
-	constexpr float DUMMY = 50; 
+	constexpr float DUMMY = 2000; 
 
 	float right = DUMMY; 
 	float left = -DUMMY;
@@ -22,8 +22,7 @@ void VoxelCamera::UpdateMatrix()
 	float fpn = _far + _near; 
 
 	// looking in a positive x direction for now
-	SetLookDirection(Vector3(0, 0, 0), Vector3(kZUnitVector));
-	SetPosition(Vector3(100, 0, 0)); 
+	SetEyeAtUp(Vector3(3000, 0, 0), Vector3(0, 0, 0), Vector3(0, 1, 0)); 
 	
 	// create an orthographic matrix
 	// https://wikimedia.org/api/rest_v1/media/math/render/svg/8ea4e438d7439b8fa504fb53fd7fafd678007243

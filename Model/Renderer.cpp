@@ -694,3 +694,70 @@ void MeshSorter::RenderMeshes(
 		context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 }
+
+void Renderer::MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, GraphicsPSO& pso)
+{
+    Renderer::UpdateGlobalDescriptors();
+
+    context.SetRootSignature(m_RootSig);
+    context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, s_TextureHeap.GetHeapPointer());
+    context.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, s_SamplerHeap.GetHeapPointer());
+
+    // Set common textures
+    context.SetDescriptorTable(kCommonSRVs, m_CommonTextures);
+
+    // Set common shader constants
+    globals.ViewProjMatrix = m_Camera->GetViewProjMatrix();
+    globals.CameraPos = m_Camera->GetPosition();
+    globals.IBLRange = s_SpecularIBLRange - s_SpecularIBLBias;
+    globals.IBLBias = s_SpecularIBLBias;
+    context.SetDynamicConstantBufferView(kCommonCBV, sizeof(GlobalConstants), &globals);
+
+    for (; m_CurrentPass <= pass; m_CurrentPass = (DrawPass)(m_CurrentPass + 1))
+    {
+        const uint32_t passCount = m_PassCounts[m_CurrentPass];
+        if (passCount == 0)
+            continue;
+
+        switch (m_CurrentPass)
+        {
+        case kOpaque:
+            context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            context.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            break;
+        case kTransparent:
+            context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            context.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            break;
+        }
+
+        context.FlushResourceBarriers();
+
+        const uint32_t lastDraw = m_CurrentDraw + passCount;
+
+        while (m_CurrentDraw < lastDraw)
+        {
+            SortKey key;
+            key.value = m_SortKeys[m_CurrentDraw];
+            const SortObject& object = m_SortObjects[key.objectIdx];
+            const Mesh& mesh = *object.mesh;
+
+            context.SetConstantBuffer(kMeshConstants, object.meshCBV);
+            context.SetConstantBuffer(kMaterialConstants, object.materialCBV);
+            context.SetDescriptorTable(kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
+            context.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
+
+            context.SetPipelineState(pso);
+
+            context.SetVertexBuffer(0, { object.bufferPtr + mesh.vbOffset, mesh.vbSize, mesh.vbStride });
+
+            context.SetIndexBuffer({ object.bufferPtr + mesh.ibOffset, mesh.ibSize, (DXGI_FORMAT)mesh.ibFormat });
+
+            for (uint32_t i = 0; i < mesh.numDraws; ++i)
+                context.DrawIndexed(mesh.draw[i].primCount, mesh.draw[i].startIndex, mesh.draw[i].baseVertex);
+
+            ++m_CurrentDraw;
+        }
+    }
+}

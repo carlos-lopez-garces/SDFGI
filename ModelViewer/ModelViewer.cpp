@@ -168,12 +168,12 @@ void LoadIBLTextures()
 
 void ModelViewer::Startup( void )
 {
-    MotionBlur::Enable = true;
-    TemporalEffects::EnableTAA = true;
+    MotionBlur::Enable = false;
+    TemporalEffects::EnableTAA = false;
     FXAA::Enable = false;
-    PostEffects::EnableHDR = true;
-    PostEffects::EnableAdaptation = true;
-    SSAO::Enable = true;
+    PostEffects::EnableHDR = false;
+    PostEffects::EnableAdaptation = false;
+    SSAO::Enable = false;
 
     Renderer::Initialize();
 
@@ -378,7 +378,9 @@ void ModelViewer::RenderScene( void )
         VoxelCamera voxelCam;
         voxelCam.UpdateMatrix(); 
 
-        /*
+
+        //
+        
         // Update global constants
         float costheta = cosf(g_SunOrientation);
         float sintheta = sinf(g_SunOrientation);
@@ -392,9 +394,9 @@ void ModelViewer::RenderScene( void )
             (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
 
         GlobalConstants globals;
-        globals.ViewProjMatrix = m_Camera.GetViewProjMatrix();
+        globals.ViewProjMatrix = voxelCam.GetViewProjMatrix();
         globals.SunShadowMatrix = m_SunShadowCamera.GetShadowMatrix();
-        globals.CameraPos = m_Camera.GetPosition();
+        globals.CameraPos = voxelCam.GetPosition();
         globals.SunDirection = SunDirection;
         globals.SunIntensity = Vector3(Scalar(g_SunLightIntensity));
 
@@ -403,7 +405,7 @@ void ModelViewer::RenderScene( void )
         gfxContext.ClearDepth(g_SceneDepthBuffer);
 
         MeshSorter sorter(MeshSorter::kDefault);
-		sorter.SetCamera(m_Camera);
+		sorter.SetCamera(voxelCam);
 		sorter.SetViewport(viewport);
 		sorter.SetScissor(scissor);
 		sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
@@ -420,6 +422,32 @@ void ModelViewer::RenderScene( void )
 
         SSAO::Render(gfxContext, m_Camera);
 
+        ////
+
+        gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        gfxContext.ClearColor(g_SceneColorBuffer);
+
+        {
+            ScopedTimer _prof(L"Render Color", gfxContext);
+
+            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            gfxContext.SetViewportAndScissor(viewport, scissor);
+
+            //sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
+            sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, VoxelPSO); 
+        }
+
+
+
+
+
+
+
+
+        /*
+        
         if (!SSAO::DebugDraw)
         {
             ScopedTimer _outerprof(L"Main Render", gfxContext);

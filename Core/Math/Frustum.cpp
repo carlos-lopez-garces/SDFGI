@@ -81,13 +81,14 @@ Frustum::Frustum( const Matrix4& ProjMat )
     // Identify if the projection is perspective or orthographic by looking at the 4th row.
     if (ProjMatF[3] == 0.0f && ProjMatF[7] == 0.0f && ProjMatF[11] == 0.0f && ProjMatF[15] == 1.0f)
     {
+        //If the shadow center is on the y axis ...
         // Orthographic
-        float Left	 = (-1.0f - ProjMatF[12]) * RcpXX;
-        float Right	 = ( 1.0f - ProjMatF[12]) * RcpXX;
-        float Top	 = ( 1.0f - ProjMatF[13]) * RcpYY;
-        float Bottom = (-1.0f - ProjMatF[13]) * RcpYY;
-        float Front	 = ( 0.0f - ProjMatF[14]) * RcpZZ;
-        float Back   = ( 1.0f - ProjMatF[14]) * RcpZZ;
+        float Left	 = -RcpXX;
+        float Right	 = RcpXX;
+        float Top	   = -RcpYY;
+        float Bottom =  RcpYY;
+        float Front	 = RcpZZ;
+        float Back   = -RcpZZ;
 
         // Check for reverse Z here.  The bounding planes need to point into the frustum.
         if (Front < Back)

@@ -4,11 +4,10 @@
 
 class VoxelCamera : public Math::BaseCamera
 {
+public: 
 
 	VoxelCamera() {}
 
 	void UpdateMatrix(); 
-
-	
 };
 

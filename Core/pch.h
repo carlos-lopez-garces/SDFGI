@@ -41,8 +41,12 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-// Enable imgui window
-#define UI_ENABLE 0
+// ~~ TEAM 10's custom macros!!!! (Mikey, Carlos, Logan) ~~
+
+#define UI_ENABLE 0                     // toggle for imgui window
+#define DISABLE_FRUSTUM_CULL 1          // disables frustum culling
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #include <Windows.h>
 #include <wrl/client.h>

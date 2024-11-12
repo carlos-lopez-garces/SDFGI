@@ -40,6 +40,8 @@
 #include "../Model/CompiledShaders/VoxelPassPS.h"
 #include "../Model/CompiledShaders/VoxelPassVS.h"
 
+#include "VoxelCamera.h"
+
 // #define LEGACY_RENDERER
 
 using namespace GameCore;
@@ -372,6 +374,9 @@ void ModelViewer::RenderScene( void )
         VoxelPSO.SetInputLayout((uint32_t)vertexLayout.size(), vertexLayout.data());
 
         VoxelPSO.Finalize();
+
+        VoxelCamera voxelCam;
+        voxelCam.UpdateMatrix(); 
 
         /*
         // Update global constants

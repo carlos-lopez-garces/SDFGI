@@ -333,7 +333,7 @@ void ModelViewer::RenderScene( void )
 
         // TODO: because of the gltf loader, there are several shaders that 
         //      exist that are slightly different (i.e. default with no tangent, 
-        //      default with no UV1PS, etc.) this means that if we want to create
+        //      default with no UV1, etc.) this means that if we want to create
         //      a voxel shader, we might need a way to deal with all these variations
         //      see `Renderer::GetPSO()` where this is done, which is called by 
         //      ModelLoader::LoadMaterials
@@ -344,7 +344,7 @@ void ModelViewer::RenderScene( void )
         GraphicsPSO VoxelPSO(L"Voxel Pipeline PSO");
 
         // use default root signature
-        VoxelPSO.SetRootSignature(Renderer::m_RootSig); 
+        VoxelPSO.SetRootSignature(Renderer::m_RootSig);
 
         D3D12_RASTERIZER_DESC rasterizerDesc = Graphics::RasterizerDefault; 
         rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE; 

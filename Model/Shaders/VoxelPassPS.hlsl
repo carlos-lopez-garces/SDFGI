@@ -13,6 +13,8 @@
 
 #include "Common.hlsli"
 
+#define NO_SECOND_UV 1
+
 Texture2D<float4> baseColorTexture          : register(t0);
 Texture2D<float3> metallicRoughnessTexture  : register(t1);
 Texture2D<float1> occlusionTexture          : register(t2);
@@ -291,10 +293,5 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
     // TODO: Shade each light using Forward+ tiles
 
-
-
     return float4(colorAccum, baseColor.a);
 }
-
-
-

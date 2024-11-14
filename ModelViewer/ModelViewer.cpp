@@ -40,6 +40,9 @@
 #include "../Model/CompiledShaders/VoxelPassPS.h"
 #include "../Model/CompiledShaders/VoxelPassVS.h"
 
+#include "../Model/CompiledShaders/DefaultPS.h"
+#include "../Model/CompiledShaders/DefaultVS.h"
+
 #include "VoxelCamera.h"
 
 // #define LEGACY_RENDERER
@@ -328,18 +331,29 @@ void ModelViewer::RenderScene( void )
         // TODO: Ideally we create this PSO somewhere else, but for now, 
         //       we'll create the PSO every frame and do the voxel render
 
+        // TODO: because of the gltf loader, there are several shaders that 
+        //      exist that are slightly different (i.e. default with no tangent, 
+        //      default with no UV1PS, etc.) this means that if we want to create
+        //      a voxel shader, we might need a way to deal with all these variations
+        //      see `Renderer::GetPSO()` where this is done, which is called by 
+        //      ModelLoader::LoadMaterials
+
+        constexpr bool useFPSCamera = false; 
+        constexpr bool depthEnabled = false; 
+
         GraphicsPSO VoxelPSO(L"Voxel Pipeline PSO");
 
         // use default root signature
         VoxelPSO.SetRootSignature(Renderer::m_RootSig); 
 
-        D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); 
+        D3D12_RASTERIZER_DESC rasterizerDesc = Graphics::RasterizerDefault; 
         rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE; 
         VoxelPSO.SetRasterizerState(rasterizerDesc); 
 
         VoxelPSO.SetBlendState(BlendDisable); 
 
         DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
+        DXGI_FORMAT DepthFormat = g_SceneDepthBuffer.GetFormat(); 
         DXGI_FORMAT formats[1] = { ColorFormat };
 
         // depth stencil description
@@ -354,12 +368,26 @@ void ModelViewer::RenderScene( void )
             depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
         }
 
-        VoxelPSO.SetDepthStencilState(depthStencilDesc);
-        VoxelPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-        VoxelPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+        if (depthEnabled) {
+            VoxelPSO.SetDepthStencilState(Graphics::DepthStateReadWrite); 
+            VoxelPSO.SetRenderTargetFormats(1, formats, DepthFormat);
+        }
+        else
+        {
+            VoxelPSO.SetDepthStencilState(depthStencilDesc);
+            VoxelPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+        }
 
+        
+        VoxelPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+
+        // the VoxelPass shaders is just a copy of g_pDefaultNoUV1 VS & PS
         VoxelPSO.SetVertexShader(g_pVoxelPassVS, sizeof(g_pVoxelPassVS));
         VoxelPSO.SetPixelShader(g_pVoxelPassPS, sizeof(g_pVoxelPassPS));
+        
+        // Default Shaders
+        //VoxelPSO.SetVertexShader(g_pDefaultVS, sizeof(g_pDefaultVS));
+        //VoxelPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
 
         // set the input layout
         std::vector<D3D12_INPUT_ELEMENT_DESC> vertexLayout;
@@ -368,18 +396,17 @@ void ModelViewer::RenderScene( void )
             vertexLayout.push_back({ "NORMAL",   0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
             vertexLayout.push_back({ "TANGENT",  0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
             vertexLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
-            vertexLayout.push_back({ "TEXCOORD", 1, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+            //vertexLayout.push_back({ "TEXCOORD", 1, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });  // For Default Shader
         }
 
         VoxelPSO.SetInputLayout((uint32_t)vertexLayout.size(), vertexLayout.data());
-
+        
         VoxelPSO.Finalize();
 
         VoxelCamera voxelCam;
         voxelCam.UpdateMatrix(); 
 
-
-        //
+        Math::BaseCamera& cam = useFPSCamera ? m_Camera : static_cast<Math::BaseCamera>(voxelCam); 
         
         // Update global constants
         float costheta = cosf(g_SunOrientation);
@@ -394,9 +421,9 @@ void ModelViewer::RenderScene( void )
             (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
 
         GlobalConstants globals;
-        globals.ViewProjMatrix = voxelCam.GetViewProjMatrix();
+        globals.ViewProjMatrix = cam.GetViewProjMatrix();
         globals.SunShadowMatrix = m_SunShadowCamera.GetShadowMatrix();
-        globals.CameraPos = voxelCam.GetPosition();
+        globals.CameraPos = cam.GetPosition();
         globals.SunDirection = SunDirection;
         globals.SunIntensity = Vector3(Scalar(g_SunLightIntensity));
 
@@ -405,7 +432,7 @@ void ModelViewer::RenderScene( void )
         gfxContext.ClearDepth(g_SceneDepthBuffer);
 
         MeshSorter sorter(MeshSorter::kDefault);
-		sorter.SetCamera(voxelCam);
+		sorter.SetCamera(cam);
 		sorter.SetViewport(viewport);
 		sorter.SetScissor(scissor);
 		sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
@@ -436,14 +463,8 @@ void ModelViewer::RenderScene( void )
             gfxContext.SetViewportAndScissor(viewport, scissor);
 
             //sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
-            sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, VoxelPSO); 
+            sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, VoxelPSO, depthEnabled); 
         }
-
-
-
-
-
-
 
 
         /*

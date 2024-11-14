@@ -13,6 +13,8 @@
 
 #include "Common.hlsli"
 
+#define NO_SECOND_UV 1
+
 #ifdef ENABLE_SKINNING
 //#undef ENABLE_SKINNING
 #endif

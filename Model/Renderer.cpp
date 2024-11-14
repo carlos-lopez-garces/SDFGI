@@ -695,7 +695,7 @@ void MeshSorter::RenderMeshes(
 	}
 }
 
-void Renderer::MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, GraphicsPSO& pso)
+void Renderer::MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, GraphicsPSO& pso, bool depthEnable)
 {
     Renderer::UpdateGlobalDescriptors();
 
@@ -724,7 +724,14 @@ void Renderer::MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context,
         {
         case kOpaque:
             context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            context.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            if (depthEnable) {
+                context.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+                context.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV()); 
+            }
+            else {
+                context.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            }
+            
             break;
         case kTransparent:
             context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);

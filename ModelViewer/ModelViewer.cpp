@@ -35,9 +35,11 @@
 #include "Display.h"
 
 //#define LEGACY_RENDERER
-
 #include "../Model/CompiledShaders/FullscreenQuadVS.h"
 #include "../Model/CompiledShaders/VisShadowBufferPS.h"
+
+#include "../Model/CompiledShaders/VoxelPassVS.h"
+#include "../Model/CompiledShaders/VoxelPassPS.h"
 
 using namespace GameCore;
 using namespace Math;
@@ -172,8 +174,8 @@ void ModelViewer::Startup( void )
 #ifdef LEGACY_RENDERER
         Sponza::Startup(m_Camera);
 #else
-        //m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
-        m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
+        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
         //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonic/CornellWithSonic.gltf", forceRebuild);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
@@ -272,6 +274,53 @@ void ModelViewer::RenderScene( void )
     }
     else
     {
+        GraphicsPSO VoxelPSO(L"Voxel Pipeline PSO");
+        {
+            // use default root signature
+            VoxelPSO.SetRootSignature(Renderer::m_RootSig);
+
+            D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+            VoxelPSO.SetRasterizerState(rasterizerDesc);
+
+            VoxelPSO.SetBlendState(BlendDisable);
+
+            DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
+            DXGI_FORMAT formats[1] = { ColorFormat };
+
+            // depth stencil description
+            D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+            {
+                depthStencilDesc.DepthEnable = FALSE;        // Disable depth testing
+                depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // Depth writes are not needed
+                depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS; // No depth comparisons
+
+                depthStencilDesc.StencilEnable = FALSE;      // Disable stencil testing
+                depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+                depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+            }
+
+            VoxelPSO.SetDepthStencilState(depthStencilDesc);
+            VoxelPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+            VoxelPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+
+            VoxelPSO.SetVertexShader(g_pVoxelPassVS, sizeof(g_pVoxelPassVS));
+            VoxelPSO.SetPixelShader(g_pVoxelPassPS, sizeof(g_pVoxelPassPS));
+
+            // set the input layout
+            std::vector<D3D12_INPUT_ELEMENT_DESC> vertexLayout;
+            {
+                vertexLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT });
+                vertexLayout.push_back({ "NORMAL",   0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
+                vertexLayout.push_back({ "TANGENT",  0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
+                vertexLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+                vertexLayout.push_back({ "TEXCOORD", 1, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+            }
+
+            VoxelPSO.SetInputLayout((uint32_t)vertexLayout.size(), vertexLayout.data());
+
+            VoxelPSO.Finalize();
+        }
         // Update global constants
         float costheta = cosf(g_SunOrientation);
         float sintheta = sinf(g_SunOrientation);
@@ -281,7 +330,7 @@ void ModelViewer::RenderScene( void )
         Vector3 SunDirection = Normalize(Vector3( costheta * cosphi, sinphi, sintheta * cosphi ));
         Vector3 ShadowBounds = Vector3(m_ModelInst.GetRadius());
         //m_SunShadowCamera.UpdateMatrix(-SunDirection, m_ModelInst.GetCenter(), ShadowBounds,
-        m_SunShadowCamera.UpdateMatrix(-SunDirection, Vector3(0, -500.0f, 0), ShadowBounds,
+        m_SunShadowCamera.UpdateMatrix(-SunDirection, Vector3(0, -m_ModelInst.GetRadius() * 0.5f, 0), ShadowBounds * 2,
             (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
 
         GlobalConstants globals;
@@ -343,12 +392,13 @@ void ModelViewer::RenderScene( void )
                 gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
                 gfxContext.SetViewportAndScissor(viewport, scissor);
 
-                sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
+                //sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
+                sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, VoxelPSO);
             }
 
-            Renderer::DrawSkybox(gfxContext, m_Camera, viewport, scissor);
+            //Renderer::DrawSkybox(gfxContext, m_Camera, viewport, scissor);
 
-            sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
+            //sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
         }
     }
 
@@ -415,6 +465,8 @@ void ModelViewer::RenderScene( void )
             DepthToQuadPSO.SetDepthStencilState(depthStencilDesc);
             DepthToQuadPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
             DepthToQuadPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+
+            //DepthToQuadPSO.Set
 
             DepthToQuadPSO.SetVertexShader(g_pFullScreenQuadVS, sizeof(g_pFullScreenQuadVS));
             DepthToQuadPSO.SetPixelShader(g_pVisShadowBufferPS, sizeof(g_pVisShadowBufferPS));

@@ -225,7 +225,11 @@ void ModelViewer::Startup( void )
         Sponza::RenderScene(ctx, cam, vp, sc, /*skipDiffusePass=*/false, /*skipShadowMap=*/false);
     };
 
-    mp_SDFGIManager = new SDFGI::SDFGIManager(sceneBounds, static_cast<std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)>>(renderLambda));
+    mp_SDFGIManager = new SDFGI::SDFGIManager(
+        sceneBounds,
+        static_cast<std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)>>(renderLambda),
+        &Renderer::s_TextureHeap
+    );
 }
 
 void ModelViewer::InitializeGUI() {
@@ -333,7 +337,7 @@ void ModelViewer::RenderScene( void )
 #ifdef LEGACY_RENDERER
         mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
 
-        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
+        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor, false, false, mp_SDFGIManager);
 
         mp_SDFGIManager->Render(gfxContext, m_Camera);
 #endif

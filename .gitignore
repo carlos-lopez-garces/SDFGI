@@ -12,6 +12,7 @@
 *.ilk
 *.log
 * - Copy*.*
+*.mini
 Build_VS*
 Build
 Packages

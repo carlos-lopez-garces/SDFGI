@@ -274,53 +274,53 @@ void ModelViewer::RenderScene( void )
     }
     else
     {
-        GraphicsPSO VoxelPSO(L"Voxel Pipeline PSO");
-        {
-            // use default root signature
-            VoxelPSO.SetRootSignature(Renderer::m_RootSig);
+        //GraphicsPSO VoxelPSO(L"Voxel Pipeline PSO");
+        //{
+        //    // use default root signature
+        //    VoxelPSO.SetRootSignature(Renderer::m_RootSig);
 
-            D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-            rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
-            VoxelPSO.SetRasterizerState(rasterizerDesc);
+        //    D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        //    rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+        //    VoxelPSO.SetRasterizerState(rasterizerDesc);
 
-            VoxelPSO.SetBlendState(BlendDisable);
+        //    VoxelPSO.SetBlendState(BlendDisable);
 
-            DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
-            DXGI_FORMAT formats[1] = { ColorFormat };
+        //    DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
+        //    DXGI_FORMAT formats[1] = { ColorFormat };
 
-            // depth stencil description
-            D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
-            {
-                depthStencilDesc.DepthEnable = FALSE;        // Disable depth testing
-                depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // Depth writes are not needed
-                depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS; // No depth comparisons
+        //    // depth stencil description
+        //    D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+        //    {
+        //        depthStencilDesc.DepthEnable = FALSE;        // Disable depth testing
+        //        depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  // Depth writes are not needed
+        //        depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS; // No depth comparisons
 
-                depthStencilDesc.StencilEnable = FALSE;      // Disable stencil testing
-                depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-                depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-            }
+        //        depthStencilDesc.StencilEnable = FALSE;      // Disable stencil testing
+        //        depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+        //        depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+        //    }
 
-            VoxelPSO.SetDepthStencilState(depthStencilDesc);
-            VoxelPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-            VoxelPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
+        //    VoxelPSO.SetDepthStencilState(depthStencilDesc);
+        //    VoxelPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+        //    VoxelPSO.SetRenderTargetFormats(1, formats, DXGI_FORMAT_UNKNOWN);
 
-            VoxelPSO.SetVertexShader(g_pVoxelPassVS, sizeof(g_pVoxelPassVS));
-            VoxelPSO.SetPixelShader(g_pVoxelPassPS, sizeof(g_pVoxelPassPS));
+        //    VoxelPSO.SetVertexShader(g_pVoxelPassVS, sizeof(g_pVoxelPassVS));
+        //    VoxelPSO.SetPixelShader(g_pVoxelPassPS, sizeof(g_pVoxelPassPS));
 
-            // set the input layout
-            std::vector<D3D12_INPUT_ELEMENT_DESC> vertexLayout;
-            {
-                vertexLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT });
-                vertexLayout.push_back({ "NORMAL",   0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
-                vertexLayout.push_back({ "TANGENT",  0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
-                vertexLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
-                vertexLayout.push_back({ "TEXCOORD", 1, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
-            }
+        //    // set the input layout
+        //    std::vector<D3D12_INPUT_ELEMENT_DESC> vertexLayout;
+        //    {
+        //        vertexLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT });
+        //        vertexLayout.push_back({ "NORMAL",   0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
+        //        vertexLayout.push_back({ "TANGENT",  0, DXGI_FORMAT_R10G10B10A2_UNORM,  0, D3D12_APPEND_ALIGNED_ELEMENT });
+        //        vertexLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+        //        vertexLayout.push_back({ "TEXCOORD", 1, DXGI_FORMAT_R16G16_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT });
+        //    }
 
-            VoxelPSO.SetInputLayout((uint32_t)vertexLayout.size(), vertexLayout.data());
+        //    VoxelPSO.SetInputLayout((uint32_t)vertexLayout.size(), vertexLayout.data());
 
-            VoxelPSO.Finalize();
-        }
+        //    VoxelPSO.Finalize();
+        //}
         // Update global constants
         float costheta = cosf(g_SunOrientation);
         float sintheta = sinf(g_SunOrientation);
@@ -393,7 +393,7 @@ void ModelViewer::RenderScene( void )
                 gfxContext.SetViewportAndScissor(viewport, scissor);
 
                 //sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
-                sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, VoxelPSO);
+                sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals);
             }
 
             //Renderer::DrawSkybox(gfxContext, m_Camera, viewport, scissor);

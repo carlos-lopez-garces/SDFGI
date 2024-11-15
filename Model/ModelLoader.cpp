@@ -130,6 +130,7 @@ void LoadMaterials(Model& model,
         mesh.srvTable = offsetPair & 0xFFFF;
         mesh.samplerTable = offsetPair >> 16;
         mesh.pso = Renderer::GetPSO(mesh.psoFlags);
+        //Renderer::GetVoxelPSO(mesh.psoFlags);
         meshPtr += sizeof(Mesh) + (mesh.numDraws - 1) * sizeof(Mesh::Draw);
     }
 }

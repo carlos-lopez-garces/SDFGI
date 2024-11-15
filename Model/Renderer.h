@@ -62,6 +62,7 @@ namespace Renderer
     void Shutdown(void);
 
     uint8_t GetPSO(uint16_t psoFlags);
+    void GetVoxelPSO(uint16_t psoFlags);
     void SetIBLTextures(TextureRef diffuseIBL, TextureRef specularIBL);
     void SetIBLBias(float LODBias);
     void UpdateGlobalDescriptors(void);
@@ -112,7 +113,7 @@ namespace Renderer
 
         void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
 
-        void RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, GraphicsPSO& pso);
+        void RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
 
     private:
 

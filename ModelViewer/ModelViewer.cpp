@@ -337,7 +337,7 @@ void ModelViewer::RenderScene( void )
 #ifdef LEGACY_RENDERER
         mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
 
-        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor, false, false, mp_SDFGIManager);
+        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor, false, false, mp_SDFGIManager, /*useAtlas=*/true);
 
         mp_SDFGIManager->Render(gfxContext, m_Camera);
 #endif

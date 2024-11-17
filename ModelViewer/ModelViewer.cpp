@@ -427,43 +427,44 @@ void ModelViewer::RenderScene( void )
             sorters[0].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
         }
 
-        // this code gives me a crash :(
 
-        //m_ModelInst.Render(sorters[1]);
-        //sorters[1].Sort();
+        // Code below crashes!
 
-        //{
-        //    ScopedTimer _prof(L"Render Voxel Y", gfxContext);
+        m_ModelInst.Render(sorters[1]);
+        sorters[1].Sort();
 
-        //    gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        //    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-        //    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
-        //    gfxContext.SetViewportAndScissor(viewport, scissor);
+        {
+            ScopedTimer _prof(L"Render Voxel Y", gfxContext);
 
-        //    // do 3 passes (render from x, y and z axis)
+            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            gfxContext.SetViewportAndScissor(viewport, scissor);
 
-        //    voxelCam.UpdateMatrix(VoxelCamera::Y);
-        //    SDFGIglobals.axis = 1;
-        //    sorters[1].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
-        //}
+            // do 3 passes (render from x, y and z axis)
 
-        //m_ModelInst.Render(sorters[2]);
-        //sorters[2].Sort();
+            voxelCam.UpdateMatrix(VoxelCamera::Y);
+            SDFGIglobals.axis = 1;
+            sorters[1].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+        }
 
-        //{
-        //    ScopedTimer _prof(L"Render Voxel Z", gfxContext);
+        m_ModelInst.Render(sorters[1]);
+        sorters[1].Sort();
 
-        //    gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        //    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-        //    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
-        //    gfxContext.SetViewportAndScissor(viewport, scissor);
+        {
+            ScopedTimer _prof(L"Render Voxel Z", gfxContext);
 
-        //    // do 3 passes (render from x, y and z axis)
+            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+            gfxContext.SetViewportAndScissor(viewport, scissor);
 
-        //    voxelCam.UpdateMatrix(VoxelCamera::Z);
-        //    SDFGIglobals.axis = 2;
-        //    sorters[2].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
-        //}
+            // do 3 passes (render from x, y and z axis)
+
+            voxelCam.UpdateMatrix(VoxelCamera::Z);
+            SDFGIglobals.axis = 2;
+            sorters[2].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+        }
     }
 #else 
         globals.ViewProjMatrix = m_Camera.GetViewProjMatrix();

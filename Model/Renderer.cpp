@@ -792,6 +792,8 @@ void Renderer::ComputeSDF(ComputeContext& context)
             swap = !swap;
         }
         context.TransitionResource(m_FinalSDFOutput, D3D12_RESOURCE_STATE_GENERIC_READ);
+        context.TransitionResource(m_VoxelVoronoiInput, D3D12_RESOURCE_STATE_GENERIC_READ);
+        context.TransitionResource(m_IntermediateSDFOutput, D3D12_RESOURCE_STATE_GENERIC_READ);
     }
 }
 

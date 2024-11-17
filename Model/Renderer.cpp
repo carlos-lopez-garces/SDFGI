@@ -1156,6 +1156,7 @@ void MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalCon
 
         while (m_CurrentDraw < lastDraw)
         {
+
             SortKey key;
             key.value = m_SortKeys[m_CurrentDraw];
             const SortObject& object = m_SortObjects[key.objectIdx];
@@ -1169,6 +1170,10 @@ void MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalCon
 #if RENDER_VOXELS_WITH_DEPTH
             context.SetPipelineState(sm_PSOs[key.psoIdx]); 
 #else
+            if (key.psoIdx < 8) {
+                ++m_CurrentDraw;
+                continue;
+            }
             context.SetPipelineState(sm_VoxelPSOs[key.psoIdx]);
 #endif
 

@@ -384,22 +384,13 @@ void ModelViewer::RenderScene( void )
             SDFGIglobals.viewHeight = height; 
         }
 
-        // gfxContext.TransitionResource(voxelTextures.VoxelAlbedo, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        for (int i = 0; i < 3; i++)
+
+        MeshSorter sorter(MeshSorter::kDefault);
         {
-            {
-                voxelCam.UpdateMatrix(i);
-                globals.ViewProjMatrix = voxelCam.GetViewProjMatrix();
-                globals.CameraPos = voxelCam.GetPosition();
-            }
-
-
-
-            MeshSorter sorter(MeshSorter::kDefault);
             sorter.SetCamera(voxelCam);
             sorter.SetViewport(voxelViewport);
             sorter.SetScissor(voxelScissor);
-            sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
+            //sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
             sorter.AddRenderTarget(g_SceneColorBuffer);
 
             // Begin rendering depth
@@ -409,12 +400,16 @@ void ModelViewer::RenderScene( void )
             m_ModelInst.Render(sorter);
 
             sorter.Sort();
+        }
 
+        // gfxContext.TransitionResource(voxelTextures.VoxelAlbedo, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        for (int i = 0; i < 3; i++)
+        {
             MeshSorter sorterInstance = sorter;
-
             {
-                ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
-                sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+                voxelCam.UpdateMatrix(i);
+                globals.ViewProjMatrix = voxelCam.GetViewProjMatrix();
+                globals.CameraPos = voxelCam.GetPosition();
             }
 
             SSAO::Render(gfxContext, m_Camera);
@@ -428,11 +423,11 @@ void ModelViewer::RenderScene( void )
                 ScopedTimer _prof(L"Render Voxel", gfxContext);
 
                 gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-                gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+                //gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
                 gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
                 gfxContext.SetViewportAndScissor(viewport, scissor);
 
-                sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+                sorterInstance.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
             }
         }
         

@@ -99,6 +99,8 @@ namespace Renderer
 			m_CurrentDraw = 0;
 		}
 
+        MeshSorter() : MeshSorter(kDefault) {}
+
 		void SetCamera( const BaseCamera& camera ) { m_Camera = &camera; }
 		void SetViewport( const D3D12_VIEWPORT& viewport ) { m_Viewport = viewport; }
 		void SetScissor( const D3D12_RECT& scissor ) { m_Scissor = scissor; }

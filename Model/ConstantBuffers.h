@@ -72,4 +72,6 @@ __declspec(align(256)) struct SDFGIGlobalConstants
 {
     float viewWidth; 
     float viewHeight; 
+    int axis; 
+    float pad; 
 };

@@ -78,6 +78,7 @@ namespace Renderer
 
     DescriptorHandle m_CommonTextures;
 
+    // SDFGI
     std::vector<GraphicsPSO> sm_VoxelPSOs;
     DescriptorHandle m_SDFGIVoxelTextures; 
     Texture m_VoxelAlbedo;

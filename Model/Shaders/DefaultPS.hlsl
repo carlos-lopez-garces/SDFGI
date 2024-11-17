@@ -55,10 +55,18 @@ cbuffer GlobalConstants : register(b1)
 }
 
 #if SDFGI_VOXEL_PASS
+
+enum VoxelAxis {
+    X = 0,
+    Y = 1,
+    Z = 2
+};
+
 cbuffer SDFGIConstants : register(b2)
 {
     float viewWidth; 
     float viewHeight; 
+    VoxelAxis axis; 
 }
 
 RWTexture3D<float4> SDFGIVoxelAlbedo : register(u0);
@@ -305,8 +313,38 @@ float4 main(VSOutput vsOutput) : SV_Target0
     // TODO: Shade each light using Forward+ tiles
 
 #if SDFGI_VOXEL_PASS
-    SDFGIVoxelAlbedo[uint3(20, 20, 20)] = float4(0., 1., 0., 1.);
-    //float3 pos = float3(vsOutput.position.xyz); 
+    // SDFGIVoxelAlbedo[uint3(20, 20, 20)] = float4(0., 1., 0., 1.);
+
+    float screenResolution = 512.0; 
+    float textureResolution = 128.0; 
+    float2 uv = vsOutput.position.xy / screenResolution;
+
+    uint x = 0; 
+    uint y = 0; 
+    uint z = 0; 
+    float3 color = float3(0., 0., 0.); 
+
+    if (axis == X) {
+        x = uv.x * textureResolution;
+        y = uv.y * textureResolution;
+        z = vsOutput.position.z * textureResolution;
+        color = float3(1., 0., 0.); 
+    }
+    else if (axis == Y) {
+        x = uv.x * textureResolution;
+        y = -vsOutput.position.z * textureResolution;
+        z = uv.y * textureResolution;
+        color = float3(0., 1., 0.);
+    }
+    else if (axis == Z) {
+        x = -vsOutput.position.z * textureResolution;
+        y = uv.x * textureResolution;
+        z = uv.y * textureResolution;
+        color = float3(0., 0., 1.);
+    }
+
+    SDFGIVoxelAlbedo[uint3(x, y, z)] = float4(color, 1.);
+
     //colorAccum = float3(frac(pos.x), frac(pos.x), frac(pos.x));
 #endif 
 

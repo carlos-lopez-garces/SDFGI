@@ -187,7 +187,8 @@ void ModelViewer::Startup( void )
 #ifdef LEGACY_RENDERER
         Sponza::Startup(m_Camera);
 #else
-        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        // m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;
@@ -350,7 +351,6 @@ void ModelViewer::RenderScene( void )
         Math::BaseCamera voxelCam = m_Camera; 
 #else
         VoxelCamera voxelCam; 
-        voxelCam.UpdateMatrix(); 
 #endif
 
         globals.ViewProjMatrix = voxelCam.GetViewProjMatrix();
@@ -382,28 +382,30 @@ void ModelViewer::RenderScene( void )
             SDFGIglobals.viewHeight = height; 
         }
 
-        // gfxContext.TransitionResource(voxelTextures.VoxelAlbedo, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        std::array<MeshSorter, 3> sorters; 
 
-        MeshSorter sorter(MeshSorter::kDefault);
-        sorter.SetCamera(voxelCam);
-        sorter.SetViewport(voxelViewport);
-        sorter.SetScissor(voxelScissor);
-        sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
-        sorter.AddRenderTarget(g_SceneColorBuffer);
+        for (MeshSorter& sorter : sorters) {
+            sorter.SetCamera(voxelCam);
+            sorter.SetViewport(voxelViewport);
+            sorter.SetScissor(voxelScissor);
+            sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
+            sorter.AddRenderTarget(g_SceneColorBuffer);
+        }
+        
 
         // Begin rendering depth
         gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
         gfxContext.ClearDepth(g_SceneDepthBuffer);
 
-        m_ModelInst.Render(sorter);
-        sorter.Sort();
+        m_ModelInst.Render(sorters[0]);
+        sorters[0].Sort();
 
-        {
+        /*{
             ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
             sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
         }
 
-        SSAO::Render(gfxContext, m_Camera);
+        SSAO::Render(gfxContext, m_Camera);*/
 
         gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         gfxContext.ClearColor(g_SceneColorBuffer);
@@ -411,15 +413,57 @@ void ModelViewer::RenderScene( void )
         // TODO: We should be rendering with the shadow pass... 
 
         {
-            ScopedTimer _prof(L"Render Voxel", gfxContext);
+            ScopedTimer _prof(L"Render Voxel X", gfxContext);
 
             gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
             gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
             gfxContext.SetViewportAndScissor(viewport, scissor);
 
-            sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+            // do 3 passes (render from x, y and z axis)
+
+            voxelCam.UpdateMatrix(VoxelCamera::X);
+            SDFGIglobals.axis = 0;
+            sorters[0].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
         }
+
+        // this code gives me a crash :(
+
+        //m_ModelInst.Render(sorters[1]);
+        //sorters[1].Sort();
+
+        //{
+        //    ScopedTimer _prof(L"Render Voxel Y", gfxContext);
+
+        //    gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+        //    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+        //    gfxContext.SetViewportAndScissor(viewport, scissor);
+
+        //    // do 3 passes (render from x, y and z axis)
+
+        //    voxelCam.UpdateMatrix(VoxelCamera::Y);
+        //    SDFGIglobals.axis = 1;
+        //    sorters[1].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+        //}
+
+        //m_ModelInst.Render(sorters[2]);
+        //sorters[2].Sort();
+
+        //{
+        //    ScopedTimer _prof(L"Render Voxel Z", gfxContext);
+
+        //    gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+        //    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+        //    gfxContext.SetViewportAndScissor(viewport, scissor);
+
+        //    // do 3 passes (render from x, y and z axis)
+
+        //    voxelCam.UpdateMatrix(VoxelCamera::Z);
+        //    SDFGIglobals.axis = 2;
+        //    sorters[2].RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+        //}
     }
 #else 
         globals.ViewProjMatrix = m_Camera.GetViewProjMatrix();

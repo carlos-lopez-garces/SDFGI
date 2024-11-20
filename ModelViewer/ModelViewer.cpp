@@ -101,8 +101,8 @@ private:
 CREATE_APPLICATION( ModelViewer )
 
 ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
-NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -0.5f, -100.0f, 100.0f, 0.1f );
-NumVar g_SunInclination("Viewer/Lighting/Sun Inclination", 0.75f, 0.0f, 1.0f, 0.01f );
+NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -0.0f, -0.0f, 0.0f, 0.1f );
+NumVar g_SunInclination("Viewer/Lighting/Sun Inclination", 0.0f, 0.0f, 1.0f, 0.01f );
 
 void ChangeIBLSet(EngineVar::ActionType);
 void ChangeIBLBias(EngineVar::ActionType);
@@ -134,45 +134,45 @@ void ChangeIBLBias(EngineVar::ActionType)
 
 void LoadIBLTextures()
 {
-    char CWD[256];
-    _getcwd(CWD, 256);
+    // char CWD[256];
+    // _getcwd(CWD, 256);
 
-    Utility::Printf("Loading IBL environment maps\n");
+    // Utility::Printf("Loading IBL environment maps\n");
 
-    WIN32_FIND_DATA ffd;
-    HANDLE hFind = FindFirstFile(L"Textures/*_diffuseIBL.dds", &ffd);
+    // WIN32_FIND_DATA ffd;
+    // HANDLE hFind = FindFirstFile(L"Textures/*_diffuseIBL.dds", &ffd);
 
-    g_IBLSet.AddEnum(L"None");
+    // g_IBLSet.AddEnum(L"None");
 
-    if (hFind != INVALID_HANDLE_VALUE) do
-    {
-        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            continue;
+    // if (hFind != INVALID_HANDLE_VALUE) do
+    // {
+    //     if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    //         continue;
 
-       std::wstring diffuseFile = ffd.cFileName;
-       std::wstring baseFile = diffuseFile; 
-       baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
-       std::wstring specularFile = baseFile + L"_specularIBL.dds";
+    //    std::wstring diffuseFile = ffd.cFileName;
+    //    std::wstring baseFile = diffuseFile; 
+    //    baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
+    //    std::wstring specularFile = baseFile + L"_specularIBL.dds";
 
-       TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
-       if (diffuseTex.IsValid())
-       {
-           TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
-           if (specularTex.IsValid())
-           {
-               g_IBLSet.AddEnum(baseFile);
-               g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
-           }
-       }
-    }
-    while (FindNextFile(hFind, &ffd) != 0);
+    //    TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
+    //    if (diffuseTex.IsValid())
+    //    {
+    //        TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
+    //        if (specularTex.IsValid())
+    //        {
+    //            g_IBLSet.AddEnum(baseFile);
+    //            g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
+    //        }
+    //    }
+    // }
+    // while (FindNextFile(hFind, &ffd) != 0);
 
-    FindClose(hFind);
+    // FindClose(hFind);
 
-    Utility::Printf("Found %u IBL environment map sets\n", g_IBLTextures.size());
+    // Utility::Printf("Found %u IBL environment map sets\n", g_IBLTextures.size());
 
-    if (g_IBLTextures.size() > 0)
-        g_IBLSet.Increment();
+    // if (g_IBLTextures.size() > 0)
+    //     g_IBLSet.Increment();
 }
 
 void ModelViewer::Startup( void )
@@ -204,8 +204,10 @@ void ModelViewer::Startup( void )
 #else
         scaleModel = 100.0f;
         //m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
-        //m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
+        // m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
         m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+        // m_ModelInst = Renderer::LoadModel(L"Models/CubemapTest/CubemapTest.gltf", forceRebuild);
+        // m_ModelInst = Renderer::LoadModel(L"Models/2PlaneBall/2PlaneBall.gltf", forceRebuild);
         m_ModelInst.Resize(scaleModel * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;

@@ -57,9 +57,9 @@ namespace SDFGI
   };
 
   struct DownsampleCB {
-    Vector3 srcSize;
-    Vector3 dstSize;
-    Vector3 scale;
+    Vector4 srcSize;
+    Vector4 dstSize;
+    Vector4 scale;
   };
 
   struct SDFGIResources {

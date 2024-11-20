@@ -21,7 +21,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapVizPS.h"
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
-#define PROBE_IDX_VIZ 1
+#define PROBE_IDX_VIZ 0
 
 using namespace Graphics;
 using namespace DirectX;
@@ -397,11 +397,11 @@ namespace SDFGI {
         computeContext.TransitionResource(probeCubemapFaceTextures[probe][face], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
 
         DownsampleCB downsampleCB;
-        downsampleCB.srcSize = Vector3(g_SceneColorBuffer.GetWidth(), g_SceneColorBuffer.GetHeight(), 0.0f);
-        downsampleCB.dstSize = Vector3(probeCubemapFaceTextures[probe][face].GetWidth(), probeCubemapFaceTextures[probe][face].GetHeight(), 0.0f);
-        downsampleCB.scale = Vector3(
+        downsampleCB.srcSize = Vector4(g_SceneColorBuffer.GetWidth(), g_SceneColorBuffer.GetHeight(), 0.0f, 0.0f);
+        downsampleCB.dstSize = Vector4(probeCubemapFaceTextures[probe][face].GetWidth(), probeCubemapFaceTextures[probe][face].GetHeight(), 0.0f, 0.0f);
+        downsampleCB.scale = Vector4(
             downsampleCB.srcSize.GetX() / downsampleCB.dstSize.GetX(),
-            downsampleCB.srcSize.GetY() / downsampleCB.dstSize.GetY(), 0.0f
+            downsampleCB.srcSize.GetY() / downsampleCB.dstSize.GetY(), 0.0f, 0.0f
         );
 
         computeContext.SetRootSignature(downsampleRS);
@@ -433,6 +433,15 @@ namespace SDFGI {
             Vector3(0.0f, 0.0f, -1.0f) 
         };
 
+//        Vector3 lookDirections[6] = {
+//Vector3(0.0f, 1.0f, 0.0f),
+//Vector3(0.0f, 1.0f, 0.0f),
+//Vector3(0.0f, 1.0f, 0.0f),
+//Vector3(0.0f, 1.0f, 0.0f),
+//Vector3(0.0f, 1.0f, 0.0f),
+//Vector3(0.0f, 1.0f, 0.0f),
+//        };
+
         Vector3 upVectors[6] = {
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f), 
@@ -441,6 +450,15 @@ namespace SDFGI {
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, -1.0f, 0.0f) 
         };
+        //
+        //Vector3 upVectors[6] = {
+        //    Vector3(0.0f, 0.0f, -1.0f),
+        //                Vector3(0.0f, 0.0f, -1.0f),
+        //                            Vector3(0.0f, 0.0f, -1.0f),
+        //                                        Vector3(0.0f, 0.0f, -1.0f),
+        //                                                    Vector3(0.0f, 0.0f, -1.0f),
+        //                                                                Vector3(0.0f, 0.0f, -1.0f),
+        //};
 
         // Render 6 views of the scene for each probe to probeCubemapFaceTextures.
         for (size_t probe = 0; probe < probeGrid.probes.size(); ++probe) {

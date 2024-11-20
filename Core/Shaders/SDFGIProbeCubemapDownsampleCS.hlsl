@@ -4,9 +4,9 @@ RWTexture2D<float4> dstTexture : register(u0);
 SamplerState samplerBilinear : register(s0); 
 
 cbuffer DownsampleCB : register(b0) {
-    float3 srcSize;  
-    float3 dstSize;  
-    float2 scale;    
+    float4 srcSize;  
+    float4 dstSize;  
+    float4 scale;    
 };
 
 [numthreads(8, 8, 1)]
@@ -15,7 +15,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) return;
 
-    float2 uv = (dstCoord + 0.5) * scale / srcSize;
+    float2 uv = (dstCoord.xy + float2(0.5, 0.5)) * scale.xy / srcSize.xy;
 
     float4 color = srcTexture.SampleLevel(samplerBilinear, uv, 0);
 

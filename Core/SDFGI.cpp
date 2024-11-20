@@ -45,14 +45,14 @@ namespace SDFGI {
 
     // TODO: grid has to be a perfect square.
     SDFGIProbeGrid::SDFGIProbeGrid(Vector3 &sceneSize, Vector3 &sceneMin) {
-        float spacing = 350.0f;
+        float spacing = 395.0f;
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
         probeSpacing[2] = spacing;
 
-        probeCount[0] = std::max(1u, static_cast<uint32_t>(sceneSize.GetX() / probeSpacing[0]));
-        probeCount[1] = std::max(1u, static_cast<uint32_t>(sceneSize.GetY() / probeSpacing[1]));
-        probeCount[2] = std::max(1u, static_cast<uint32_t>(sceneSize.GetZ() / probeSpacing[2]));
+        probeCount[0] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetX() / probeSpacing[0]))) + 1;
+        probeCount[1] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetY() / probeSpacing[1])));
+        probeCount[2] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetZ() / probeSpacing[2])));
 
         GenerateProbes(sceneMin);
     }
@@ -77,9 +77,10 @@ namespace SDFGI {
 
     SDFGIManager::SDFGIManager(
         const Math::AxisAlignedBox &sceneBounds, 
-        std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc
+        std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc,
+        DescriptorHeap *externalHeap
     )
-        : probeGrid(sceneBounds.GetDimensions(), sceneBounds.GetMin()), sceneBounds(sceneBounds), renderFunc(renderFunc) {
+        : probeGrid(sceneBounds.GetDimensions(), sceneBounds.GetMin()), sceneBounds(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
         InitializeTextures();
         InitializeViews();
         InitializeProbeBuffer();
@@ -105,13 +106,8 @@ namespace SDFGI {
         uint32_t depth = probeGrid.probeCount[2];
         probeCount = width * height * depth;
 
-        // 4x4 pixels per probe for octahedral mapping.
-        uint32_t probeBlockSize = 8;
-        // Padding between probes
-        uint32_t gutterSize = 1; 
-
-        uint32_t atlasWidth = (width * probeBlockSize) + (width + 1) * gutterSize;
-        uint32_t atlasHeight = (height * probeBlockSize) + (height + 1) * gutterSize;
+        uint32_t atlasWidth = (width * probeAtlasBlockResolution) + (width + 1) * gutterSize;
+        uint32_t atlasHeight = (height * probeAtlasBlockResolution) + (height + 1) * gutterSize;
         uint32_t atlasDepth = depth; 
 
         irradianceAtlas.CreateArray(
@@ -119,7 +115,9 @@ namespace SDFGI {
             atlasWidth,
             atlasHeight,
             atlasDepth,
-            DXGI_FORMAT_R16G16B16A16_FLOAT
+            DXGI_FORMAT_R16G16B16A16_FLOAT,
+            D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN,
+            externalHeap
         );
 
         depthAtlas.CreateArray(
@@ -168,6 +166,15 @@ namespace SDFGI {
             }
         }
     };
+
+    D3D12_GPU_DESCRIPTOR_HANDLE SDFGIManager::GetIrradianceAtlasGpuSRV() const {
+        D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = externalHeap->GetHeapPointer()->GetGPUDescriptorHandleForHeapStart();
+        UINT descriptorSize = externalHeap->GetDescriptorSize();
+        UINT offset = externalHeap->GetOffsetOfHandle(irradianceAtlas.GetSRV());
+
+        gpuHandle.ptr += offset * descriptorSize;
+        return gpuHandle;
+    }
 
     void SDFGIManager::InitializeProbeBuffer() {
         std::vector<float> probeData;
@@ -271,33 +278,47 @@ namespace SDFGI {
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-        struct ProbeData {
-            XMFLOAT4X4 randomRotation;
-            unsigned int ProbeCount;
-            float ProbeMaxDistance;
-            Vector3 GridSize;
-            Vector3 ProbeSpacing;
-            Vector3 SceneMinBounds;
-            int ProbeIndex;
+        __declspec(align(16)) struct ProbeData {
+            XMFLOAT4X4 RandomRotation;                  // 64
+
+            Vector3 GridSize;                           // 16
+
+            Vector3 ProbeSpacing;                       // 16
+
+            Vector3 SceneMinBounds;                     // 16
+
+            unsigned int ProbeCount;                    // 4
+            unsigned int ProbeAtlasBlockResolution;     // 4
+            unsigned int GutterSize;                    // 4 
+            float pad0;                                 // 4
         } probeData;
 
         float rotation_scaler = 3.14159f / 7.0f;
         XMMATRIX randomRotation = GenerateRandomRotationMatrix(rotation_scaler);
-        XMStoreFloat4x4(&probeData.randomRotation, randomRotation);
-
+        XMStoreFloat4x4(&probeData.RandomRotation, randomRotation);
         probeData.ProbeCount = probeGrid.probes.size();
-        probeData.ProbeMaxDistance = 50;
         probeData.GridSize = Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
         probeData.ProbeSpacing = Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]);
         probeData.SceneMinBounds = sceneBounds.GetMin();
+        probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
+        probeData.GutterSize = gutterSize;
 
-        computeContext.SetDynamicConstantBufferView(4, sizeof(probeData), &probeData);
+        computeContext.SetDynamicConstantBufferView(4, sizeof(ProbeData), &probeData);
 
         // One thread per probe.
         computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
 
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+        irradianceAtlasSRVHandle = externalHeap->Alloc(1);
+        uint32_t DestCount = 1;
+        uint32_t SourceCounts[] = { 1 };
+        D3D12_CPU_DESCRIPTOR_HANDLE SourceTextures[] =
+        {
+            irradianceAtlas.GetSRV() 
+        };
+        g_Device->CopyDescriptors(1, &irradianceAtlasSRVHandle, &DestCount, DestCount, SourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         irradianceCaptured = true;
     }
@@ -495,12 +516,32 @@ namespace SDFGI {
         context.Draw(4);
     }
 
-    void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor) {
-        ScopedTimer _prof(L"SDFGI Rendering", context);
+    SDFGIResources SDFGIManager::GetResources() {
+        return { irradianceAtlas.GetSRV() };
+    }
+
+    SDFGIProbeData SDFGIManager::GetProbeData() {
+      return {
+        Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]),
+        Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]),
+        probeAtlasBlockResolution,
+        sceneBounds.GetMin(),
+        gutterSize,
+        irradianceAtlas.GetWidth(),
+        irradianceAtlas.GetHeight()
+      };
+    }
+
+    void SDFGIManager::Update(GraphicsContext& context, const Math::Camera& camera, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor) {
+        ScopedTimer _prof(L"SDFGI Update", context);
 
         RenderCubemapsForProbes(context, camera, viewport, scissor);
 
         UpdateProbes(context);
+    }
+
+    void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
+        ScopedTimer _prof(L"SDFGI Rendering", context);
 
         RenderProbeViz(context, camera);
 

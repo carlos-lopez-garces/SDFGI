@@ -21,6 +21,7 @@
 #include "../Core/TextureManager.h"
 #include <cstdint>
 #include <vector>
+#include "SDFGI.h"
 
 #include <d3d12.h>
 
@@ -63,6 +64,8 @@ namespace Renderer
         kCommonSRVs,
         kCommonCBV,
         kSkinMatrices,
+        kSDFGISRVs,
+        kSDFGICBV,
         kSDFGICommonCBV,
         kSDFGIVoxelUAVs,
 
@@ -136,7 +139,7 @@ namespace Renderer
 
         void Sort();
 
-        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
+        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, bool UseSDFGI = false, SDFGI::SDFGIManager* mp_SDFGIManager = nullptr);
         void RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, 
             SDFGIGlobalConstants& SDFGIglobals);
 

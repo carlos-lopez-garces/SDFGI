@@ -28,6 +28,8 @@
     "DescriptorTable(SRV(t10, numDescriptors = 10), visibility = SHADER_VISIBILITY_PIXEL)," \
     "CBV(b1), " \
     "SRV(t20, visibility = SHADER_VISIBILITY_VERTEX), " \
+    "DescriptorTable(SRV(t21, numDescriptors = 1), visibility = SHADER_VISIBILITY_PIXEL)," \
+    "CBV(b2), " \
     "StaticSampler(s10, maxAnisotropy = 8, visibility = SHADER_VISIBILITY_PIXEL)," \
     "StaticSampler(s11, visibility = SHADER_VISIBILITY_PIXEL," \
         "addressU = TEXTURE_ADDRESS_CLAMP," \
@@ -36,7 +38,7 @@
         "comparisonFunc = COMPARISON_GREATER_EQUAL," \
         "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT)," \
     "StaticSampler(s12, maxAnisotropy = 8, visibility = SHADER_VISIBILITY_PIXEL)," \
-    "CBV(b2)," \
+    "CBV(b3)," \
     "DescriptorTable(UAV(u0, numDescriptors = 2), visibility = SHADER_VISIBILITY_PIXEL)"
 
 // Common (static) samplers

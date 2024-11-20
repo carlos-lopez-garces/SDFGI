@@ -14,7 +14,7 @@
 #include "Common.hlsli"
 
 // TODO: Create duplicates of all DefaultXXXPS shaders with this pre-processor
-#define SDFGI_VOXEL_PASS 0
+#define SDFGI_VOXEL_PASS 1
 
 Texture2D<float4> baseColorTexture          : register(t0);
 Texture2D<float3> metallicRoughnessTexture  : register(t1);
@@ -32,6 +32,7 @@ TextureCube<float3> radianceIBLTexture      : register(t10);
 TextureCube<float3> irradianceIBLTexture    : register(t11);
 Texture2D<float> texSSAO			        : register(t12);
 Texture2D<float> texSunShadow			    : register(t13);
+Texture2DArray<float4> IrradianceAtlas : register(t21);
 
 cbuffer MaterialConstants : register(b0)
 {
@@ -54,12 +55,34 @@ cbuffer GlobalConstants : register(b1)
     float IBLBias;
 }
 
-#if SDFGI_VOXEL_PASS
-cbuffer SDFGIConstants : register(b2)
+cbuffer SDFGIConstants : register(b2) {
+    float3 GridSize;
+    float Pad0;
+
+    float3 ProbeSpacing;
+    float Pad1;
+
+    float3 SceneMinBounds;
+    float Pad2;
+
+    uint ProbeAtlasBlockResolution;	
+    uint GutterSize;
+    float AtlasWidth;
+    float AtlasHeight;
+
+    bool UseAtlas;
+    float Pad3;
+    float Pad4;
+    float Pad5;
+};
+
+
+cbuffer VoxelConsts : register(b3)
 {
     float viewWidth; 
     float viewHeight;
     int axis;
+    bool voxelPass; 
 }
 
 RWTexture3D<float4> SDFGIVoxelAlbedo : register(u0);
@@ -93,7 +116,6 @@ uint3 GetVoxelCoords(float3 position, float2 uv, float textureResolution, int ax
         clamp(y, 0, textureResolution - 1),
         clamp(z, 0, textureResolution - 1));
 }
-#endif
 
 struct VSOutput
 {
@@ -283,6 +305,84 @@ float3 ComputeNormal(VSOutput vsOutput)
 #endif
 }
 
+float2 signNotZero(float2 v) {
+    return float2((v.x >= 0.0 ? 1.0 : -1.0), (v.y >= 0.0 ? 1.0 : -1.0));
+}
+
+float2 octEncode(float3 v) {
+    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
+    float2 result = v.xy * (1.0 / l1norm);
+    
+    if (v.z < 0.0) {
+        result = (1.0 - abs(result.yx)) * signNotZero(result.xy);
+    }
+    
+    return result;
+}
+
+float3 ShadeFragmentWithProbes(
+    float3 fragmentWorldPos,       
+    float3 normal                 
+) {
+    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
+    float3 probeCoord = floor(localPos); 
+
+    float3 interpWeight = frac(localPos);
+
+    uint3 probeIndices[8] = {
+        uint3(probeCoord),
+        uint3(probeCoord + float3(1, 0, 0)),
+        uint3(probeCoord + float3(0, 1, 0)),
+        uint3(probeCoord + float3(1, 1, 0)),
+        uint3(probeCoord + float3(0, 0, 1)),
+        uint3(probeCoord + float3(1, 0, 1)),
+        uint3(probeCoord + float3(0, 1, 1)),
+        uint3(probeCoord + float3(1, 1, 1))
+    };
+
+    for (int i = 0; i < 8; ++i) {
+        probeIndices[i] = clamp(probeIndices[i], uint3(0, 0, 0), uint3(GridSize) - 1);
+    }
+
+    float4 irradiance[8];
+    for (int i = 0; i < 8; ++i) {
+        // float2 encodedDir = octEncode(normalize(mul(RandomRotation, float4(probeIndices[i] - localPos, 1.0)).xyz));
+        // float2 encodedDir = octEncode(normalize(mul(RandomRotation, float4(-normal, 1.0)).xyz));
+        float2 encodedDir = octEncode(normal);
+        // float2 encodedDir = octEncode(normalize(float3(0.1, -0.7, -0.43)));
+        // float2 mappedDir = encodedDir * 0.5 + 0.5;
+        // return float3(mappedDir, 0);
+        encodedDir = clamp(encodedDir, -1.0, 1.0);
+        uint3 atlasCoord = probeIndices[i] * uint3(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize, 1);
+        float2 texCoord = atlasCoord.xy + uint2(
+            (encodedDir.x * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize),
+            (encodedDir.y * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize)
+        );
+        texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
+
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0);
+        // irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(texCoord, 5), 0);
+    }
+
+    float4 resultIrradiance = lerp(
+        lerp(lerp(irradiance[0], irradiance[1], interpWeight.x),
+             lerp(irradiance[2], irradiance[3], interpWeight.x), interpWeight.y),
+        lerp(lerp(irradiance[4], irradiance[5], interpWeight.x),
+             lerp(irradiance[6], irradiance[7], interpWeight.x), interpWeight.y),
+        interpWeight.z
+    );
+
+    return resultIrradiance.rgb;
+    // return float3(1, 0, 0);
+    // return IrradianceAtlas.SampleLevel(defaultSampler, float3(0.5, 0.5, 2), 0).rgb;
+    // return probeIndices[5].xyz / GridSize;
+    // return SceneMinBounds;
+    // return interpWeight;
+    // return fragmentWorldPos - SceneMinBounds;
+    // return localPos;
+    // return RandomRotation[2].xyz;
+    // return probeCoord / GridSize;
+}
 
 [RootSignature(Renderer_RootSig)]
 float4 main(VSOutput vsOutput) : SV_Target0
@@ -308,58 +408,45 @@ float4 main(VSOutput vsOutput) : SV_Target0
     // Begin accumulating light starting with emissive
     float3 colorAccum = emissive;
 
-#if 1  // SDFGI Direct Lighting with shadows
-    float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
-    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+    if (!UseAtlas) {
+        float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
+        colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
-    uint2 pixelPos = uint2(vsOutput.position.xy);
-    float ssao = texSSAO[pixelPos];
+        uint2 pixelPos = uint2(vsOutput.position.xy);
+        float ssao = texSSAO[pixelPos];
 
-    Surface.c_diff *= ssao;
-    Surface.c_spec *= ssao;
-
-    // Old-school ambient light
-    colorAccum += Surface.c_diff * 0.1;
-#else
-    uint2 pixelPos = uint2(vsOutput.position.xy);
-    float ssao = texSSAO[pixelPos];
-
-    Surface.c_diff *= ssao;
-    Surface.c_spec *= ssao;
-
-    // Add IBL
-    colorAccum += Diffuse_IBL(Surface);
-    colorAccum += Specular_IBL(Surface);
-#endif
-
-    // TODO: Shade each light using Forward+ tiles
-
-#if SDFGI_VOXEL_PASS
-    // TODO: These are hardcoded values. It's assumed that the viewport size is 
-    //       512 * 512, and that the 3D texture is 128 * 128 * 128. We could 
-    //       make these CBV's if we want. 
-    float screenResolution = 512.0;
-    float textureResolution = 128.0;
-    float2 uv = vsOutput.position.xy / screenResolution;  // normalized UV coords
-
-    uint3 voxelCoords = GetVoxelCoords(vsOutput.position.xyz, uv, textureResolution, axis);
-
-    if (voxelCoords.x == 0 && voxelCoords.y == 0 && voxelCoords.z == 0)
-    {
-        return baseColor; // Early exit or skip further processing
+        Surface.c_diff *= ssao;
+        Surface.c_spec *= ssao;
     }
 
-    SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
-    SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
+    // TODO: Shade each light using Forward+ tiles
+    
+    if (voxelPass) {
+        // TODO: These are hardcoded values. It's assumed that the viewport size is 
+        //       512 * 512, and that the 3D texture is 128 * 128 * 128. We could 
+        //       make these CBV's if we want. 
+        float screenResolution = 512.0;
+        float textureResolution = 128.0;
+        float2 uv = vsOutput.position.xy / screenResolution;  // normalized UV coords
 
-    // SDFGIVoxelAlbedo[uint3(20, 20, 20)] = float4(0., 1., 0., 1.);
-    // SDFGIVoxelVoronoi[uint3(25, 25, 25)] = float4(1., 0., 0., 1.); 
-    //float3 pos = float3(vsOutput.position.xyz); 
-    //colorAccum = float3(frac(pos.x), frac(pos.x), frac(pos.x));
+        uint3 voxelCoords = GetVoxelCoords(vsOutput.position.xyz, uv, textureResolution, axis);
 
-    // we don't really care about the output. This is for debug purposes. 
-    return baseColor;
-#else 
-    return float4(colorAccum, baseColor.a);
-#endif 
+        if (voxelCoords.x == 0 && voxelCoords.y == 0 && voxelCoords.z == 0)
+        {
+            return baseColor; // Early exit or skip further processing
+        }
+
+        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+        SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
+
+        // we don't really care about the output. This is for debug purposes. 
+        return baseColor;
+    }
+    
+    if (UseAtlas) {
+        return float4(ShadeFragmentWithProbes(vsOutput.worldPos, normalize(vsOutput.normal)), 1.0f);
+    } else {
+        return float4(colorAccum, baseColor.a);
+    }
+
 }

@@ -122,11 +122,20 @@ void Renderer::Initialize(void)
     m_RootSig[kCommonSRVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 10, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSig[kCommonCBV].InitAsConstantBuffer(1);
     m_RootSig[kSkinMatrices].InitAsBufferSRV(20, D3D12_SHADER_VISIBILITY_VERTEX);
+    D3D12_DESCRIPTOR_RANGE srvRange;
+    srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    srvRange.NumDescriptors = 1;
+    srvRange.BaseShaderRegister = 21;
+    srvRange.RegisterSpace = 0;
+    srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+    m_RootSig[kSDFGISRVs].InitAsDescriptorTable(1, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kSDFGISRVs].SetTableRange(0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 21, 1);
+    // m_RootSig[kSDFGISRVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 21, 1, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kSDFGICBV].InitAsConstantBuffer(2, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // For Voxel PSO's
-    m_RootSig[kSDFGICommonCBV].InitAsConstantBuffer(2, D3D12_SHADER_VISIBILITY_ALL);
+    m_RootSig[kSDFGICommonCBV].InitAsConstantBuffer(3, D3D12_SHADER_VISIBILITY_ALL);
     m_RootSig[kSDFGIVoxelUAVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
-
     m_RootSig.Finalize(L"RootSig", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
@@ -748,7 +757,7 @@ uint8_t Renderer::GetPSO(uint16_t psoFlags)
     // Create associated voxelPSO
     CreateVoxelPSO(psoFlags); 
 
-    ASSERT(sm_PSOs.size() == sm_VoxelPSOs.size())
+    ASSERT(sm_PSOs.size() == sm_VoxelPSOs.size());
 
     return (uint8_t)sm_PSOs.size() - 2;
 }
@@ -817,7 +826,7 @@ void Renderer::ComputeSDF(ComputeContext& context)
                 }
             }
             //2. Dispatch
-            context.Dispatch(128, 128, 128);
+            context.Dispatch(16, 16, 16);
             //3. Update swap bool
             swap = !swap;
         }
@@ -976,7 +985,9 @@ void MeshSorter::Sort()
 void MeshSorter::RenderMeshes(
     DrawPass pass,
     GraphicsContext& context,
-    GlobalConstants& globals)
+    GlobalConstants& globals,
+    bool UseSDFGI,
+    SDFGI::SDFGIManager* mp_SDFGIManager)
 {
 	ASSERT(m_DSV != nullptr);
 
@@ -991,11 +1002,48 @@ void MeshSorter::RenderMeshes(
     context.SetDescriptorTable(kCommonSRVs, m_CommonTextures);
 
     // Set common shader constants
-	globals.ViewProjMatrix = m_Camera->GetViewProjMatrix();
-	globals.CameraPos = m_Camera->GetPosition();
+	  globals.ViewProjMatrix = m_Camera->GetViewProjMatrix();
+	  globals.CameraPos = m_Camera->GetPosition();
     globals.IBLRange = s_SpecularIBLRange - s_SpecularIBLBias;
     globals.IBLBias = s_SpecularIBLBias;
 	context.SetDynamicConstantBufferView(kCommonCBV, sizeof(GlobalConstants), &globals);
+
+    static SDFGIGlobalConstants voxelPassOff{};
+    voxelPassOff.voxelPass = 0; 
+    context.SetDynamicConstantBufferView(kSDFGICommonCBV, sizeof(SDFGIGlobalConstants), &voxelPassOff);
+
+
+  if (UseSDFGI) {
+      __declspec(align(16)) struct SDFGIConstants {
+          Vector3 GridSize;                       // 16
+
+          Vector3 ProbeSpacing;                   // 16
+
+          Vector3 SceneMinBounds;                 // 16
+
+          unsigned int ProbeAtlasBlockResolution; // 4
+          unsigned int GutterSize;                // 4
+          float AtlasWidth;                       // 4
+          float AtlasHeight;                      // 4
+
+          bool UseAtlas;                          // 4
+          float Pad0;                             // 4
+          float Pad1;                             // 4
+          float Pad2;                             // 4
+      } sdfgiConstants;
+
+      context.SetDescriptorTable(Renderer::kSDFGISRVs, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
+      SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
+      sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
+      sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
+      sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
+      sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
+      sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
+      sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
+      sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
+      sdfgiConstants.UseAtlas = true;
+      context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
+  }
 
 	if (m_BatchType == kShadows)
 	{
@@ -1130,8 +1178,6 @@ void MeshSorter::RenderMeshes(
 	}
 }
 
-#define RENDER_VOXELS_WITH_DEPTH 0
-
 void MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, 
     SDFGIGlobalConstants& SDFGIglobals)
 {
@@ -1166,12 +1212,7 @@ void MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalCon
         {
         case kOpaque:
             context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-#if RENDER_VOXELS_WITH_DEPTH   // render with depth
-                context.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-                context.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
-#else
-                context.SetRenderTarget(g_SceneColorBuffer.GetRTV());
-#endif
+            context.SetRenderTarget(g_SceneColorBuffer.GetRTV());
             break;
         case kTransparent:
             context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -1195,12 +1236,7 @@ void MeshSorter::RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalCon
             context.SetConstantBuffer(kMaterialConstants, object.materialCBV);
             context.SetDescriptorTable(kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
             context.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
-
-#if RENDER_VOXELS_WITH_DEPTH
-            context.SetPipelineState(sm_PSOs[key.psoIdx]); 
-#else
             context.SetPipelineState(sm_VoxelPSOs[key.psoIdx]);
-#endif
 
             context.SetVertexBuffer(0, { object.bufferPtr + mesh.vbOffset, mesh.vbSize, mesh.vbStride });
 

@@ -39,9 +39,9 @@
 #include "imgui_impl_dx12.h"
 #include "SDFGI.h"
 
+// #define LEGACY_RENDERER
 #include <string>
 
-//#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -77,9 +77,11 @@ public:
 
     void InitializeGUI();
 
-    GlobalConstants UpdateGlobalConstants(const Math::Camera& cam, bool renderShadows = false);
+    GlobalConstants ModelViewer::UpdateGlobalConstants(const Math::BaseCamera& cam, bool renderShadows);
+    void NonLegacyRenderSDF(GraphicsContext& gfxContext);
     void NonLegacyRenderShadowMap(GraphicsContext& gfxContext, const Math::Camera& cam, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor);
-    void NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::Camera& cam, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor);
+    void NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::Camera& cam, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor, bool renderShadows = true, bool useSDFGI = false);
+
 
 private:
 
@@ -202,7 +204,7 @@ void ModelViewer::Startup( void )
         scaleModel = 100.0f;
         m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
         //m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
-        //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonic/CornellWithSonic.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
         m_ModelInst.Resize(scaleModel * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;
@@ -240,10 +242,18 @@ void ModelViewer::Startup( void )
     #endif
 
     auto renderLambda = [&](GraphicsContext& ctx, const Math::Camera& cam, const D3D12_VIEWPORT& vp, const D3D12_RECT& sc) {
+#ifdef LEGACY_RENDERER
+        Sponza::RenderScene(ctx, cam, vp, sc, /*skipDiffusePass=*/false, /*skipShadowMap=*/false);
+#else
         ModelViewer::NonLegacyRenderScene(ctx, cam, vp, sc);
+#endif
     };
 
-    mp_SDFGIManager = new SDFGI::SDFGIManager(sceneBounds, static_cast<std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)>>(renderLambda));
+    mp_SDFGIManager = new SDFGI::SDFGIManager(
+        sceneBounds,
+        static_cast<std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)>>(renderLambda),
+        &Renderer::s_TextureHeap
+    );
 }
 
 void ModelViewer::InitializeGUI() {
@@ -336,7 +346,7 @@ void ModelViewer::Update( float deltaT )
     m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
 }
 
-GlobalConstants ModelViewer::UpdateGlobalConstants(const Math::Camera& cam, bool renderShadows)
+GlobalConstants ModelViewer::UpdateGlobalConstants(const Math::BaseCamera& cam, bool renderShadows)
 {
     GlobalConstants globals;
     globals.ViewProjMatrix = cam.GetViewProjMatrix();
@@ -361,7 +371,20 @@ GlobalConstants ModelViewer::UpdateGlobalConstants(const Math::Camera& cam, bool
         float y = obb.GetDimensions().GetY();
         float z = obb.GetDimensions().GetZ();
 
-        m_SunShadowCamera.UpdateMatrix(-SunDirection, Vector3(0, -m_ModelInst.GetCenter().GetY(), 0), obb.GetDimensions() * 1.5f,
+        Utility::Print("Obb: ");
+        Utility::Print(std::to_string(obb.GetDimensions().GetX()).c_str());
+        Utility::Print(", ");
+        Utility::Print(std::to_string(obb.GetDimensions().GetY()).c_str());
+        Utility::Print(", ");
+        Utility::Print(std::to_string(obb.GetDimensions().GetZ()).c_str());
+        Utility::Print("\n");
+        //We should evaluate the correct center position based on the camera angle!
+        //This is similar to your 3D Pixel art project!
+        float maxLength = Length(obb.GetDimensions());
+        //m_SunShadowCamera.UpdateMatrixImproved(-SunDirection, Vector3(0, 0, 0), Vector4(maxLength, maxLength, -maxLength, maxLength),
+        //    (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
+
+        m_SunShadowCamera.UpdateMatrixImproved(-SunDirection, obb.GetCenter(), Vector3(maxLength, maxLength, maxLength),
             (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
 
         // Update sun/shadow global constants
@@ -387,8 +410,89 @@ void ModelViewer::NonLegacyRenderShadowMap(GraphicsContext& gfxContext, const Ma
     shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
 }
 
+void ModelViewer::NonLegacyRenderSDF(GraphicsContext& gfxContext) {
+    VoxelCamera cam; 
+    SDFGIGlobalConstants SDFGIglobals{};
+    D3D12_VIEWPORT voxelViewport{};
+    D3D12_RECT voxelScissor{};
+
+    {
+        float width = 512.f;
+        float height = 512.f;
+        voxelViewport.Width = width;
+        voxelViewport.Height = height;
+        voxelViewport.MinDepth = 0.0f;
+        voxelViewport.MaxDepth = 1.0f;
+
+        voxelScissor.left = 0;
+        voxelScissor.top = 0;
+        voxelScissor.right = width;
+        voxelScissor.bottom = height;
+
+        SDFGIglobals.viewWidth = width;
+        SDFGIglobals.viewHeight = height;
+        SDFGIglobals.voxelPass = 1;
+    }
+
+    Renderer::ClearSDFGITextures(gfxContext);
+
+    for (int i = 0; i < 3; ++i) {
+        cam.UpdateMatrix(i); 
+        GlobalConstants globals = UpdateGlobalConstants(cam, true);
+
+        MeshSorter sorter(MeshSorter::kDefault);
+        sorter.SetCamera(cam);
+        sorter.SetViewport(voxelViewport);
+        sorter.SetScissor(voxelScissor);
+        sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
+        sorter.AddRenderTarget(g_SceneColorBuffer);
+
+        // Begin rendering depth
+        gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+        gfxContext.ClearDepth(g_SceneDepthBuffer);
+
+        m_ModelInst.Render(sorter);
+
+        sorter.Sort();
+
+        MeshSorter sorterInstance = sorter;
+
+        {
+            ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
+            sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+        }
+
+        SSAO::Render(gfxContext, m_Camera);
+
+        gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        gfxContext.ClearColor(g_SceneColorBuffer);
+
+        {
+            ScopedTimer _prof(i == 0 ? L"Render Voxel X" : i == 1 ? L"Render Voxel Y" : L"Render Voxel Z", gfxContext);
+
+            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV());
+
+            SDFGIglobals.axis = i;
+
+            sorter.RenderVoxels(MeshSorter::kOpaque, gfxContext, globals, SDFGIglobals);
+        }
+    }
+
+    {
+        ComputeContext& context = gfxContext.GetComputeContext();
+        {
+            ScopedTimer _prof(L"SDF Jump Flood Compute", context);
+            Renderer::ComputeSDF(context);
+        }
+    }
+
+    return; 
+}
+
 void ModelViewer::NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::Camera& cam, 
-    const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor)
+    const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor, bool renderShadows, bool useSDFGI)
 {
     GlobalConstants globals = UpdateGlobalConstants(cam, false);
     // Begin rendering depth
@@ -426,13 +530,50 @@ void ModelViewer::NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::
 
         {
             ScopedTimer _prof(L"Render Color", gfxContext);
+            //__declspec(align(16)) struct SDFGIConstants {
+            //    Vector3 GridSize;                       // 16
+
+            //    Vector3 ProbeSpacing;                   // 16
+
+            //    Vector3 SceneMinBounds;                 // 16
+
+            //    unsigned int ProbeAtlasBlockResolution; // 4
+            //    unsigned int GutterSize;                // 4
+            //    float AtlasWidth;                       // 4
+            //    float AtlasHeight;                      // 4
+
+            //    bool UseAtlas;                          // 4
+            //    float Pad0;                             // 4
+            //    float Pad1;                             // 4
+            //    float Pad2;                             // 4
+            //} sdfgiConstants;
+            //if (useSDFGI) {
+            //    //gfxContext.SetRootSignature(Renderer::m_RootSig);
+            //    gfxContext.SetDescriptorTable(Renderer::kSDFGISRVs, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
+            //    SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
+            //    sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
+            //    sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
+            //    sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
+            //    sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
+            //    sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
+            //    sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
+            //    sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
+            //    sdfgiConstants.UseAtlas = true;
+            //    gfxContext.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
+            //}
+            ////else {
+            ////    gfxContext.SetRootSignature(Renderer::m_RootSig);
+
+            ////    sdfgiConstants.UseAtlas = false;
+            ////    gfxContext.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
+            ////}
 
             gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
             gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
             gfxContext.SetViewportAndScissor(viewport, scissor);
 
-            mainSorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
+            mainSorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals, useSDFGI, mp_SDFGIManager);
         }
 
         Renderer::DrawSkybox(gfxContext, cam, viewport, scissor);
@@ -451,21 +592,22 @@ void ModelViewer::RenderScene( void )
 
     ParticleEffectManager::Update(gfxContext.GetComputeContext(), Graphics::GetFrameTime());
 
+    mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
+
     if (m_ModelInst.IsNull())
     {
 #ifdef LEGACY_RENDERER
-        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
+        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor, false, false, mp_SDFGIManager, /*useAtlas=*/true);
 #endif
     }
     else
     {
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
-        // TODO: Add back Voxel Pass here in between shadow map and final color pass
-        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor);
+        NonLegacyRenderSDF(gfxContext); 
+        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
     }
 
-    // TODO: needs to be done before rendering the scene so that probes can be sampled.
-    mp_SDFGIManager->Render(gfxContext, m_Camera, viewport, scissor);
+    mp_SDFGIManager->Render(gfxContext, m_Camera);
 
 #if MAIN_SUN_SHADOW_BUFFER_VIS == 1  //all main macros in pch.h
     Renderer::DrawShadowBuffer(gfxContext, viewport, scissor);

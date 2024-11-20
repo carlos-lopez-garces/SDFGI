@@ -28,6 +28,16 @@ namespace SDFGI
     Vector3 position;
   };
 
+  struct SDFGIProbeData {      
+      Vector3 GridSize;
+      Vector3 ProbeSpacing;
+      unsigned int ProbeAtlasBlockResolution;
+      Vector3 SceneMinBounds;
+      unsigned int GutterSize;
+      unsigned int AtlasWidth;
+      unsigned int AtlasHeight;
+  };
+
   struct SDFGIProbeGrid {
     // Number of probes along each axis (x, y, z). This is computed from probeSpacing.
     Vector3u probeCount;
@@ -52,6 +62,10 @@ namespace SDFGI
     Vector3 scale;
   };
 
+  struct SDFGIResources {
+    const D3D12_CPU_DESCRIPTOR_HANDLE &irradianceAtlasSRV;
+  };
+
   // A lot of "Managers" in the codebase.
   class SDFGIManager {
   public:
@@ -70,7 +84,16 @@ namespace SDFGI
 
     int cubemapFaceResolution = 64;
 
+    DescriptorHeap *externalHeap;
+
+    uint32_t probeAtlasBlockResolution = 8;
+    uint32_t gutterSize = 1;
     ColorBuffer irradianceAtlas;
+    ColorBuffer &getIrradianceAtlas() { return irradianceAtlas; }
+    D3D12_GPU_DESCRIPTOR_HANDLE GetIrradianceAtlasGpuSRV() const;
+    DescriptorHandle irradianceAtlasSRVHandle;
+    DescriptorHandle &GetIrradianceAtlasDescriptorHandle() { return irradianceAtlasSRVHandle; }
+    Vector3 GetIrradianceAtlasDimensions() const { return Vector3(irradianceAtlas.GetWidth(), irradianceAtlas.GetHeight(), irradianceAtlas.GetDepth()); }
 
     ColorBuffer depthAtlas;
 
@@ -86,7 +109,8 @@ namespace SDFGI
     SDFGIManager(
       const Math::AxisAlignedBox &sceneBounds,
       // A function/lambda for invoking the scene's render function. Used for rendering probe cubemaps.
-      std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc
+      std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc,
+      DescriptorHeap *externalHeap
     );
 
     ~SDFGIManager();
@@ -130,7 +154,14 @@ namespace SDFGI
     void InitializeCubemapVizShader();
     void RenderCubemapViz(GraphicsContext& context, const Math::Camera& camera);
 
-    // Entry point for updating probes and rendering visualizations.
-    void Render(GraphicsContext& context, const Math::Camera& camera, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor);
+    SDFGIResources GetResources();
+
+    SDFGIProbeData GetProbeData();
+
+    // Entry point for updating probes.
+    void SDFGIManager::Update(GraphicsContext& context, const Math::Camera& camera, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor);
+
+    // Entry point for rendering visualizations.
+    void Render(GraphicsContext& context, const Math::Camera& camera);
   };
 }

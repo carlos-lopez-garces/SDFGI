@@ -21,7 +21,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapVizPS.h"
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
-#define PROBE_IDX_VIZ 123
+#define PROBE_IDX_VIZ 1
 
 using namespace Graphics;
 using namespace DirectX;
@@ -45,21 +45,26 @@ namespace SDFGI {
 
     // TODO: grid has to be a perfect square.
     SDFGIProbeGrid::SDFGIProbeGrid(Vector3 &sceneSize, Vector3 &sceneMin) {
-        float spacing = 395.0f;
+        //float spacing = 2000.0f;
+        float spacing = 800.0f;
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
         probeSpacing[2] = spacing;
 
-        probeCount[0] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetX() / probeSpacing[0]))) + 1;
-        probeCount[1] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetY() / probeSpacing[1])));
-        probeCount[2] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetZ() / probeSpacing[2])));
-
+        //probeCount[0] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetX() / probeSpacing[0]))) + 1;
+        //probeCount[1] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetY() / probeSpacing[1])));
+        //probeCount[2] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetZ() / probeSpacing[2])));
+        probeCount[0] = 2;
+        probeCount[1] = 2;
+        probeCount[2] = 2;
+        //Utility::Printf("Bruh: %d", probeCount[0]);
         GenerateProbes(sceneMin);
     }
 
     // TODO: we'll need to be able to map a probe world space position or linear index to a 3D texture coordinate.
     void SDFGIProbeGrid::GenerateProbes(Vector3 &sceneMin) {
         probes.clear();
+        sceneMin = Vector3(-400, 200, -400);
         // TODO: make sure that grid really covers the bounding box.
         for (uint32_t x = 0; x < probeCount[0]; ++x) {
             for (uint32_t y = 0; y < probeCount[1]; ++y) {
@@ -542,11 +547,12 @@ namespace SDFGI {
 
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
-
-        RenderProbeViz(context, camera);
+        //RenderProbeAtlasViz(context, camera);
+        //RenderProbeViz(context, camera);
+        RenderCubemapViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
-        RenderProbeAtlasViz(context, camera);
+        RenderProbeViz(context, camera);
         // RenderCubemapViz(context, camera);
     }
 }

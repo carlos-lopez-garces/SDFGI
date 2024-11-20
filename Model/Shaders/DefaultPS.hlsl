@@ -11,6 +11,8 @@
 // Author(s):	James Stanard
 //              Justin Saunders (ATG)
 
+#define DISABLE_SHADOWS
+
 #include "Common.hlsli"
 
 // TODO: Create duplicates of all DefaultXXXPS shaders with this pre-processor
@@ -408,8 +410,12 @@ float4 main(VSOutput vsOutput) : SV_Target0
     // Begin accumulating light starting with emissive
     float3 colorAccum = emissive;
 
-if (!UseAtlas) {
+//if (!UseAtlas) {
     float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
+#ifdef DISABLE_SHADOWS
+    //sunShadow = 1.0f;
+    return float4(baseColor.rgb, baseColor.a);
+#endif
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
     uint2 pixelPos = uint2(vsOutput.position.xy);
@@ -418,7 +424,7 @@ if (!UseAtlas) {
     Surface.c_diff *= ssao;
     Surface.c_spec *= ssao;
 
-}
+//}
 
     // TODO: Shade each light using Forward+ tiles
     
@@ -448,10 +454,12 @@ if (!UseAtlas) {
     // we don't really care about the output. This is for debug purposes. 
     return baseColor;
 #else 
-    if (UseAtlas) {
-        return float4(ShadeFragmentWithProbes(vsOutput.worldPos, normalize(vsOutput.normal)), 1.0f);
-    } else {
+    //if (UseAtlas) {
+        //return float4(ShadeFragmentWithProbes(vsOutput.worldPos, normalize(vsOutput.normal)), 1.0f);
+    //} else {
         return float4(colorAccum, baseColor.a);
-    }
+    //}
+    //float2 encodedDir = octEncode(normal);
+    //return float4(encodedDir, 0, 1.0f);
 #endif 
 }

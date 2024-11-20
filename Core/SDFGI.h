@@ -58,7 +58,9 @@ namespace SDFGI
 
   struct DownsampleCB {
     Vector3 srcSize;
+
     Vector3 dstSize;
+    
     Vector3 scale;
   };
 
@@ -87,7 +89,7 @@ namespace SDFGI
     DescriptorHeap *externalHeap;
 
     uint32_t probeAtlasBlockResolution = 8;
-    uint32_t gutterSize = 1;
+    uint32_t gutterSize = 2;
     ColorBuffer irradianceAtlas;
     ColorBuffer &getIrradianceAtlas() { return irradianceAtlas; }
     D3D12_GPU_DESCRIPTOR_HANDLE GetIrradianceAtlasGpuSRV() const;

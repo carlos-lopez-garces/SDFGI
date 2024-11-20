@@ -276,6 +276,20 @@ float2 octEncode(float3 v) {
     return result;
 }
 
+float3 ACESToneMapping(float3 color) {
+    const float a = 2.51f;
+    const float b = 0.03f;
+    const float c = 2.43f;
+    const float d = 0.59f;
+    const float e = 0.14f;
+    return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0f, 1.0f);
+}
+
+float3 gammaCorrection(float3 color, float gamma)
+{
+    return pow(color, float3(1.f / gamma, 1.f / gamma, 1.f / gamma));
+}
+
 float3 ShadeFragmentWithProbes(
     float3 fragmentWorldPos,       
     float3 normal                 
@@ -393,8 +407,8 @@ if (!UseAtlas) {
     // TODO: Shade each light using Forward+ tiles
 
     if (UseAtlas) {
-        return float4(ShadeFragmentWithProbes(vsOutput.worldPos, normalize(vsOutput.normal)), 1.0f);
+        return float4(gammaCorrection(ACESToneMapping(ShadeFragmentWithProbes(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
     } else {
-        return float4(colorAccum, baseColor.a);
+        return float4(gammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
     }
 }

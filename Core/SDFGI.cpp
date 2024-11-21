@@ -85,7 +85,7 @@ namespace SDFGI {
         std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc,
         DescriptorHeap *externalHeap
     )
-        : probeGrid(sceneBounds.GetDimensions(), Vector3(-400, 200, -400)), sceneBounds(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
+        : probeGrid(sceneBounds.GetDimensions(), Vector3(-400, 5, -400)), sceneBounds(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
         InitializeTextures();
         InitializeViews();
         InitializeProbeBuffer();
@@ -312,7 +312,7 @@ namespace SDFGI {
         probeData.ProbeCount = probeGrid.probes.size();
         probeData.GridSize = Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
         probeData.ProbeSpacing = Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]);
-        probeData.SceneMinBounds = Vector3(-400, 200, -400);
+        probeData.SceneMinBounds = Vector3(-400, 5, -400);
         probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
         probeData.GutterSize = gutterSize;
 
@@ -539,7 +539,7 @@ namespace SDFGI {
         Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]),
         Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]),
         probeAtlasBlockResolution,
-        Vector3(-400, 200, -400),
+        Vector3(-400, 5, -400),
         gutterSize,
         irradianceAtlas.GetWidth(),
         irradianceAtlas.GetHeight()

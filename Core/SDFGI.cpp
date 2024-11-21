@@ -21,7 +21,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapVizPS.h"
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
-#define PROBE_IDX_VIZ 1
+#define PROBE_IDX_VIZ 0
 
 using namespace Graphics;
 using namespace DirectX;
@@ -551,7 +551,7 @@ namespace SDFGI {
         RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
-        RenderProbeAtlasViz(context, camera);
-        // RenderCubemapViz(context, camera);
+        //RenderProbeAtlasViz(context, camera);
+        RenderCubemapViz(context, camera);
     }
 }

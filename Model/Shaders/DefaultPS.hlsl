@@ -383,22 +383,22 @@ if (!UseAtlas) {
     float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
-    uint2 pixelPos = uint2(vsOutput.position.xy);
-    float ssao = texSSAO[pixelPos];
+    //uint2 pixelPos = uint2(vsOutput.position.xy);
+    //float ssao = texSSAO[pixelPos];
 
-    Surface.c_diff *= ssao;
-    Surface.c_spec *= ssao;
+    //Surface.c_diff *= ssao;
+    //Surface.c_spec *= ssao;
 
     // Old-school ambient light
-    colorAccum += Surface.c_diff * 0.1;
+    //colorAccum += Surface.c_diff * 0.1;
 
 } else {
 
     uint2 pixelPos = uint2(vsOutput.position.xy);
-    float ssao = texSSAO[pixelPos];
+    //float ssao = texSSAO[pixelPos];
 
-    Surface.c_diff *= ssao;
-    Surface.c_spec *= ssao;
+    //Surface.c_diff *= ssao;
+    //Surface.c_spec *= ssao;
 
     // Add IBL
     // colorAccum += Diffuse_IBL(Surface);
@@ -410,7 +410,7 @@ if (!UseAtlas) {
     if (UseAtlas) {
         return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
     } else {
-        //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-        return float4(baseColor);
+        return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(baseColor);
     }
 }

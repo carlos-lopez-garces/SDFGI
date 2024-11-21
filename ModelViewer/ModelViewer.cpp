@@ -238,17 +238,17 @@ void ModelViewer::Startup( void )
     sceneBounds.AddPoint(scaleModel * Vector3(test.GetMax()));
     #endif
 
-    auto renderLambda = [&](GraphicsContext& ctx, const Math::Camera& cam, const D3D12_VIEWPORT& vp, const D3D12_RECT& sc, bool renderShadows) {
+    auto renderLambda = [&](GraphicsContext& ctx, const Math::Camera& cam, const D3D12_VIEWPORT& vp, const D3D12_RECT& sc, bool renderShadows, bool useSDFGI) {
 #ifdef LEGACY_RENDERER
         Sponza::RenderScene(ctx, cam, vp, sc, /*skipDiffusePass=*/false, /*skipShadowMap=*/false);
 #else
-        ModelViewer::NonLegacyRenderScene(ctx, cam, vp, sc, renderShadows);
+        ModelViewer::NonLegacyRenderScene(ctx, cam, vp, sc, renderShadows, useSDFGI);
 #endif
     };
 
     mp_SDFGIManager = new SDFGI::SDFGIManager(
         sceneBounds,
-        static_cast<std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&, bool)>>(renderLambda),
+        static_cast<std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&, bool, bool)>>(renderLambda),
         &Renderer::s_TextureHeap
     );
 }
@@ -513,7 +513,7 @@ void ModelViewer::RenderScene( void )
     }
     else
     {
-        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
+        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
     }
 
     mp_SDFGIManager->Render(gfxContext, m_Camera);

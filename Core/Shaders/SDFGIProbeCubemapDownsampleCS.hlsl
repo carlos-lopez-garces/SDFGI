@@ -22,6 +22,8 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     float2 uv = srcCoord / srcSize.xy;
     uv += (dstCoord / dstSize.xy) * float2(srcSize.y / srcSize.x, 1);
 
+    //uv = dstCoord / dstSize.xy;
+
     float4 color = srcTexture.SampleLevel(samplerBilinear, uv, 0);
     float4 testUVCol = float4(uv, 0, 1);
     dstTexture[dstCoord] = color;

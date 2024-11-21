@@ -18,8 +18,8 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) return;
 
-    float srcCoord = 0.5*srcSize - 0.5*dstSize;
-    float2 uv = srcCoord / srcSize;
+    float3 srcCoord = 0.5*srcSize - 0.5*dstSize;
+    float2 uv = srcCoord.xy / srcSize.xy;
 
     float4 color = srcTexture.SampleLevel(samplerBilinear, uv, 0);
 

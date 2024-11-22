@@ -18,11 +18,11 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     //float2 uv = dstCoord / float2(8.0f, 8.0f);
     //if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) return;
 
-    float2 srcCoord = float2((srcSize.x - srcSize.y) * 0.5, 0);
-    float2 uv = srcCoord / srcSize.xy;
-    uv += (dstCoord / dstSize.xy) * float2(srcSize.y / srcSize.x, 1);
+    //float2 srcCoord = float2((srcSize.x - srcSize.y) * 0.5, 0);
+    //float2 uv = srcCoord / srcSize.xy;
+    //uv += (dstCoord / dstSize.xy) * float2(srcSize.y / srcSize.x, 1);
 
-    uv = dstCoord / dstSize.xy;
+    float2 uv = dstCoord / dstSize.xy;
     //uv *= 4.0;
 
     float4 color = srcTexture.SampleLevel(samplerBilinear, uv, 0);

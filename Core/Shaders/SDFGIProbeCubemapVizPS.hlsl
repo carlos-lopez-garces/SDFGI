@@ -19,8 +19,8 @@ float4 main(VS_OUTPUT input) : SV_Target{
     if (faceIndex >= 6) return float4(0, 0, 0, 1);
     
     float2 uv = input.texCoord;
-    //uv.x = uv.x % (1.0 / 3.0) * 3.0;
-    //uv.y = uv.y % (0.5) * 2.0;
-    //return CubemapFaces[faceIndex].Sample(LinearSampler, uv); //is this even .. correct? doesn't it have to be modded?
-    return CubemapFaces[2].Sample(LinearSampler, uv); //is this even .. correct? doesn't it have to be modded?
+    uv.x = uv.x % (1.0 / 3.0) * 3.0;
+    uv.y = uv.y % (0.5) * 2.0;
+    return CubemapFaces[faceIndex].Sample(LinearSampler, uv); //is this even .. correct? doesn't it have to be modded?
+    //return CubemapFaces[2].Sample(LinearSampler, uv); //is this even .. correct? doesn't it have to be modded?
 }

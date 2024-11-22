@@ -452,7 +452,7 @@ namespace SDFGI {
                 Camera faceCamera;
                 faceCamera.SetPosition(probePosition);
                 faceCamera.SetLookDirection(lookDirections[face], upVectors[face]);
-                faceCamera.SetPerspectiveMatrix(XM_PI / 2.0f, 9.0f / 16.0f, camera.GetNearClip(), camera.GetFarClip()); //1.0f ...
+                faceCamera.SetPerspectiveMatrix(XM_PI / 2.0f, 1.0f, camera.GetNearClip(), camera.GetFarClip());
                 faceCamera.ReverseZ(camera.GetReverseZ());
                 faceCamera.Update();
 

@@ -134,45 +134,45 @@ void ChangeIBLBias(EngineVar::ActionType)
 
 void LoadIBLTextures()
 {
-    // char CWD[256];
-    // _getcwd(CWD, 256);
+    char CWD[256];
+    _getcwd(CWD, 256);
 
-    // Utility::Printf("Loading IBL environment maps\n");
+    Utility::Printf("Loading IBL environment maps\n");
 
-    // WIN32_FIND_DATA ffd;
-    // HANDLE hFind = FindFirstFile(L"Textures/*_diffuseIBL.dds", &ffd);
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = FindFirstFile(L"Textures/*_diffuseIBL.dds", &ffd);
 
-    // g_IBLSet.AddEnum(L"None");
+    g_IBLSet.AddEnum(L"None");
 
-    // if (hFind != INVALID_HANDLE_VALUE) do
-    // {
-    //     if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    //         continue;
+    if (hFind != INVALID_HANDLE_VALUE) do
+    {
+        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
 
-    //    std::wstring diffuseFile = ffd.cFileName;
-    //    std::wstring baseFile = diffuseFile; 
-    //    baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
-    //    std::wstring specularFile = baseFile + L"_specularIBL.dds";
+       std::wstring diffuseFile = ffd.cFileName;
+       std::wstring baseFile = diffuseFile; 
+       baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
+       std::wstring specularFile = baseFile + L"_specularIBL.dds";
 
-    //    TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
-    //    if (diffuseTex.IsValid())
-    //    {
-    //        TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
-    //        if (specularTex.IsValid())
-    //        {
-    //            g_IBLSet.AddEnum(baseFile);
-    //            g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
-    //        }
-    //    }
-    // }
-    // while (FindNextFile(hFind, &ffd) != 0);
+       TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
+       if (diffuseTex.IsValid())
+       {
+           TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
+           if (specularTex.IsValid())
+           {
+               g_IBLSet.AddEnum(baseFile);
+               g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
+           }
+       }
+    }
+    while (FindNextFile(hFind, &ffd) != 0);
 
-    // FindClose(hFind);
+    FindClose(hFind);
 
-    // Utility::Printf("Found %u IBL environment map sets\n", g_IBLTextures.size());
+    Utility::Printf("Found %u IBL environment map sets\n", g_IBLTextures.size());
 
-    // if (g_IBLTextures.size() > 0)
-    //     g_IBLSet.Increment();
+    if (g_IBLTextures.size() > 0)
+        g_IBLSet.Increment();
 }
 
 void ModelViewer::Startup( void )

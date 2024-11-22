@@ -21,7 +21,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapVizPS.h"
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
-#define PROBE_IDX_VIZ 4
+#define PROBE_IDX_VIZ 0
 
 using namespace Graphics;
 using namespace DirectX;
@@ -452,7 +452,7 @@ namespace SDFGI {
                 Camera faceCamera;
                 faceCamera.SetPosition(probePosition);
                 faceCamera.SetLookDirection(lookDirections[face], upVectors[face]);
-                faceCamera.SetPerspectiveMatrix(XM_PI / 2.0f, 1.0f, camera.GetNearClip(), camera.GetFarClip());
+                faceCamera.SetPerspectiveMatrix(XM_PI / 2.0f, 9.0f / 16.0f, camera.GetNearClip(), camera.GetFarClip()); //1.0f ...
                 faceCamera.ReverseZ(camera.GetReverseZ());
                 faceCamera.Update();
 
@@ -549,10 +549,12 @@ namespace SDFGI {
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
 
-        RenderProbeViz(context, camera);
+        //RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
         //RenderProbeAtlasViz(context, camera);
         RenderCubemapViz(context, camera);
+
+        RenderProbeViz(context, camera);
     }
 }

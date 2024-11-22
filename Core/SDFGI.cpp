@@ -23,6 +23,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
 #define PROBE_IDX_VIZ 1
+#define SCENE_IS_CORNELL_BOX 1
 
 using namespace Graphics;
 using namespace DirectX;
@@ -45,31 +46,40 @@ namespace SDFGI {
     }
 
     // TODO: grid has to be a perfect square.
-    SDFGIProbeGrid::SDFGIProbeGrid(Vector3 &sceneSize, Vector3 &sceneMin) {
-        //float spacing = 2000.0f;
+    SDFGIProbeGrid::SDFGIProbeGrid(Math::AxisAlignedBox bbox) : sceneBounds(bbox) {
+#if SCENE_IS_CORNELL_BOX
+        sceneBounds.SetMin(Vector3(-400, 5, -400));
+
         float spacing = 800.0f;
+#else
+        float spacing = 2000.0f;
+#endif
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
         probeSpacing[2] = spacing;
 
-        //probeCount[0] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetX() / probeSpacing[0]))) + 1;
-        //probeCount[1] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetY() / probeSpacing[1])));
-        //probeCount[2] = std::max(1u, static_cast<uint32_t>(ceil(sceneSize.GetZ() / probeSpacing[2])));
+#if SCENE_IS_CORNELL_BOX
         probeCount[0] = 2;
         probeCount[1] = 2;
         probeCount[2] = 2;
-        //Utility::Printf("Bruh: %d", probeCount[0]);
-        GenerateProbes(sceneMin);
+#else
+        probeCount[0] = std::max(1u, static_cast<uint32_t>(ceil(sceneBounds.GetDimensions().GetX() / probeSpacing[0]))) + 1;
+        probeCount[1] = std::max(1u, static_cast<uint32_t>(ceil(sceneBounds.GetDimensions().GetY() / probeSpacing[1])));
+        probeCount[2] = std::max(1u, static_cast<uint32_t>(ceil(sceneBounds.GetDimensions().GetZ() / probeSpacing[2])));
+#endif
+
+        GenerateProbes();
     }
 
     // TODO: we'll need to be able to map a probe world space position or linear index to a 3D texture coordinate.
-    void SDFGIProbeGrid::GenerateProbes(Vector3 &sceneMin) {
+    void SDFGIProbeGrid::GenerateProbes() {
         probes.clear();
+
         // TODO: make sure that grid really covers the bounding box.
         for (uint32_t x = 0; x < probeCount[0]; ++x) {
             for (uint32_t y = 0; y < probeCount[1]; ++y) {
                 for (uint32_t z = 0; z < probeCount[2]; ++z) {
-                    Vector3 position = sceneMin + Vector3(
+                    Vector3 position = sceneBounds.GetMin() + Vector3(
                         x * probeSpacing[0],
                         y * probeSpacing[1],
                         z * probeSpacing[2]
@@ -85,7 +95,7 @@ namespace SDFGI {
         std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc,
         DescriptorHeap *externalHeap
     )
-        : probeGrid(sceneBounds.GetDimensions(), Vector3(-400, 5, -400)), sceneBounds(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
+        : probeGrid(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
         InitializeTextures();
         InitializeViews();
         InitializeProbeBuffer();
@@ -312,7 +322,7 @@ namespace SDFGI {
         probeData.ProbeCount = probeGrid.probes.size();
         probeData.GridSize = Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
         probeData.ProbeSpacing = Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]);
-        probeData.SceneMinBounds = Vector3(-400, 5, -400);
+        probeData.SceneMinBounds = probeGrid.sceneBounds.GetMin();
         probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
         probeData.GutterSize = gutterSize;
 
@@ -539,7 +549,7 @@ namespace SDFGI {
         Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]),
         Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]),
         probeAtlasBlockResolution,
-        Vector3(-400, 5, -400),
+        probeGrid.sceneBounds.GetMin(),
         gutterSize,
         irradianceAtlas.GetWidth(),
         irradianceAtlas.GetHeight()

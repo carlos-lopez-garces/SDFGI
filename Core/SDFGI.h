@@ -43,11 +43,11 @@ namespace SDFGI
     Vector3u probeCount;
     // Distance between probes in world space along each axis.
     Vector3f probeSpacing;
+    Math::AxisAlignedBox sceneBounds;
     std::vector<SDFGIProbe> probes;
+    SDFGIProbeGrid(Math::AxisAlignedBox sceneBounds);
 
-    SDFGIProbeGrid(Vector3 &sceneSize, Vector3 &sceneMin);
-
-    void GenerateProbes(Vector3 &sceneMin);
+    void GenerateProbes();
   };
 
   struct CameraData {
@@ -79,7 +79,6 @@ namespace SDFGI
 
     int probeCount;
     SDFGIProbeGrid probeGrid;
-    const Math::AxisAlignedBox &sceneBounds;
 
     // Buffer of SDFGIProbe's.
     StructuredBuffer probeBuffer;

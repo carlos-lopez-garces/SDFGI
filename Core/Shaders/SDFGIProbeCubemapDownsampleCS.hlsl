@@ -18,6 +18,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) return;
 
+    // Cropped square in the middle of the source texture.
     float2 srcCoord = (0.5*srcSize - 0.5*dstSize).xy + dstCoord;
     float2 uv = srcCoord / srcSize.xy;
 

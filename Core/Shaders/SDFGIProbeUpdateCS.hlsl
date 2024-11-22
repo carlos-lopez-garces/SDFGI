@@ -41,6 +41,16 @@ float2 octEncode(float3 v) {
     return result;
 }
 
+/** Returns a unit vector. Argument o is an octahedral vector packed via octEncode,
+    on the [-1, +1] square*/
+float3 octDecode(float2 o) {
+    float3 v = float3(o.x, o.y, 1.0 - abs(o.x) - abs(o.y));
+    if (v.z < 0.0) {
+        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+    }
+    return normalize(v);
+}
+
 int GetFaceIndex(float3 dir)
 {
     float3 absDir = abs(dir);
@@ -70,8 +80,49 @@ float3 spherical_fibonacci(uint index, uint sample_count) {
     return float3(cos(phi) * sin_theta, sin(phi) * sin_theta, cos_theta);
 }
 
+
 [numthreads(1, 1, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
+    //for each thread, write into IrradianceAtlas
+    uint probeIndex = dispatchThreadID.x
+        + dispatchThreadID.y * GridSize.x
+        + dispatchThreadID.z * GridSize.x * GridSize.y;
+
+    if (probeIndex >= ProbeCount) return;
+
+    float3 probePosition = ProbePositions[probeIndex].xyz;
+
+    //uint3 atlasCoord = uint3(
+    //    dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
+    //    dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
+    //    dispatchThreadID.z
+    //);
+
+    //In Screenspace, 0,0 = top left, (width - 1, height -1) = bot right
+    uint3 atlasCoordStart_SS = uint3(
+        GutterSize + dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
+        GutterSize + dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
+        dispatchThreadID.z
+    );
+
+    for (int i = 0; i < ProbeAtlasBlockResolution; i++) {
+        for (int j = 0; j < ProbeAtlasBlockResolution; j++) {
+            uint3 probeTexCoord = atlasCoordStart_SS + uint3(i, j, 0);
+            //float4 col = float4((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution, 0, 1);
+            //IrradianceAtlas[probeTexCoord] = col;
+
+            float2 o = float2((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution);
+            o *= float2(2.0, 2.0);
+            o -= float2(1.0, 1.0);
+
+            float3 decodedSphereNormal = octDecode(o);
+            float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
+            IrradianceAtlas[probeTexCoord] = col;
+        }
+    }
+
+    /*
+    
     uint probeIndex = dispatchThreadID.x 
                 + dispatchThreadID.y * GridSize.x 
                 + dispatchThreadID.z * GridSize.x * GridSize.y;
@@ -108,4 +159,5 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
         IrradianceAtlas[probeTexCoord] = irradianceSample;
         // DepthAtlas[probeTexCoord] = ...;
     }
+    */
 }

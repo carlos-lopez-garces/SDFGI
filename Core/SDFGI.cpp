@@ -311,6 +311,8 @@ namespace SDFGI {
 
         computeContext.SetDynamicConstantBufferView(4, sizeof(ProbeData), &probeData);
 
+
+        //computeContext.ClearUAV(irradianceAtlas);
         // One thread per probe.
         computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
 
@@ -335,7 +337,7 @@ namespace SDFGI {
         atlasVizRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, /*register=t*/0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
         // Depth atlas.
         atlasVizRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, /*register=t*/1, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-        atlasVizRS.InitStaticSampler(0, SamplerLinearClampDesc);
+        atlasVizRS.InitStaticSampler(0, SamplerPointClampDesc); //SamplerLinearClampDesc
         atlasVizRS.Finalize(L"SDFGI Visualization Root Signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
         atlasVizPSO.SetRootSignature(atlasVizRS);

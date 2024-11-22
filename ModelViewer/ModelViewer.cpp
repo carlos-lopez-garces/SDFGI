@@ -519,7 +519,7 @@ void ModelViewer::RenderScene( void )
     }
     else
     {
-        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
+        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
     }
 
     mp_SDFGIManager->Render(gfxContext, m_Camera);

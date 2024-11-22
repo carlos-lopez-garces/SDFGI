@@ -324,8 +324,6 @@ float3 TestGI(
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
 
-
-
     for (int i = 0; i < 8; ++i) {
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
@@ -345,14 +343,22 @@ float3 TestGI(
 
         //float2 encodedDir = octEncode(normal);
         float2 encodedDir = octEncode(normal);
-        uint3 atlasCoord = probeIndices[i] * uint3(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize, 1);
+
+
+        uint2 atlasCoord = uint2(GutterSize, GutterSize) + 
+            probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
+
         float2 texCoord = atlasCoord.xy + uint2(
-            (encodedDir.x * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize),
-            (encodedDir.y * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize)
+            (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
+            (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
         );
+
         texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
 
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0);
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord,/* int Probe Slice Index */ probeIndices[i].z), 0);
+
+
+
 
         resultIrradiance += weights[i] * irradiance[i];
     }
@@ -363,7 +369,7 @@ float3 TestGI(
         resultIrradiance /= weightSum;
     }
     else {
-        resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
+        resultIrradiance = float4(1.0, 0.0, 0.0, 1.0);
     }
 
     return resultIrradiance.rgb;
@@ -374,7 +380,7 @@ float3 TestGI(
 
 
 
-    return float3(1, 0, 0);
+    //return float3(1, 0, 0);
 }
 
 float3 SampleIrradiance(

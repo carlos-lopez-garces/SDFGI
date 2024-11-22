@@ -117,6 +117,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 
             float3 decodedSphereNormal = octDecode(o);
             float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
+            //float4 col = float4(decodedSphereNormal, 1.0);
             IrradianceAtlas[probeTexCoord] = col;
         }
     }

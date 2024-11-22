@@ -10,5 +10,5 @@ struct VS_OUTPUT
 
 float4 main(VS_OUTPUT input) : SV_Target
 {
-    return IrradianceAtlas.SampleLevel(LinearSampler, float3(input.texCoord, /*depth_index=*/5), 0);
+    return IrradianceAtlas.SampleLevel(LinearSampler, float3(input.texCoord, /*depth_index=*/0), 0);
 }

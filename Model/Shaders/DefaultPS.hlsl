@@ -290,6 +290,93 @@ float3 GammaCorrection(float3 color, float gamma)
     return pow(color, float3(1.f / gamma, 1.f / gamma, 1.f / gamma));
 }
 
+float3 TestGI(
+    float3 fragmentWorldPos,
+    float3 normal
+) {
+    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
+    bool hasNegative = any(localPos < 0.0);
+    bool isOver = any(localPos > 1.0);
+    if (hasNegative || isOver) {
+        return float3(1, 0, 1);
+    }
+
+    //We are in our test grid now
+
+    float3 probeCoord = floor(localPos); //[0,0,0] to [1,1,1] is possible here
+
+    float3 interpWeight = frac(localPos);
+
+    uint3 probeIndices[8] = {
+        uint3(probeCoord),
+        uint3(probeCoord + float3(1, 0, 0)),
+        uint3(probeCoord + float3(0, 1, 0)),
+        uint3(probeCoord + float3(1, 1, 0)),
+        uint3(probeCoord + float3(0, 0, 1)),
+        uint3(probeCoord + float3(1, 0, 1)),
+        uint3(probeCoord + float3(0, 1, 1)),
+        uint3(probeCoord + float3(1, 1, 1))
+    };
+
+    float4 irradiance[8];
+    float weights[8];
+    float weightSum = 0.0;
+    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+
+
+
+
+    for (int i = 0; i < 8; ++i) {
+        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
+        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
+
+        // Exclude probes behind the fragment.
+        float normalDotDir = dot(normal, dirToProbe);
+        if (normalDotDir <= 0.0) {
+            weights[i] = 0.0;
+            continue;
+        }
+
+        float distance = length(probeWorldPos - fragmentWorldPos);
+        // Prevent near-zero distances.
+        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
+        weights[i] = normalDotDir * distanceWeight;
+        weightSum += weights[i];
+
+        //float2 encodedDir = octEncode(normal);
+        float2 encodedDir = octEncode(normal);
+        uint3 atlasCoord = probeIndices[i] * uint3(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize, 1);
+        float2 texCoord = atlasCoord.xy + uint2(
+            (encodedDir.x * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize),
+            (encodedDir.y * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize)
+        );
+        texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
+
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0);
+
+        resultIrradiance += weights[i] * irradiance[i];
+    }
+
+
+    if (weightSum > 0.0) {
+        // Normalize irradiance.
+        resultIrradiance /= weightSum;
+    }
+    else {
+        resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    return resultIrradiance.rgb;
+
+
+
+
+
+
+
+    return float3(1, 0, 0);
+}
+
 float3 SampleIrradiance(
     float3 fragmentWorldPos,       
     float3 normal
@@ -403,11 +490,27 @@ float4 main(VSOutput vsOutput) : SV_Target0
 #endif
 
     // TODO: Shade each light using Forward+ tiles
+    //
+#if 0 //View normals
+    return float4(0.5 * (normalize(vsOutput.normal) + float3(1.0, 1.0, 1.0)), 1.0);
+#endif
+
 
     if (UseAtlas) {
-        return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+        //return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+        float3 col = TestGI(vsOutput.worldPos, normalize(vsOutput.normal));
+        if (col.x == 1 && col.y == 0 && col.z == 1) {
+            //return float4(col, 1.0);
+            //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+            return float4(1, 0, 1, 1);
+            //return float4(colorAccum.rgb, baseColor.a);
+        }
+        return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
+        //return float4(col.rgb, baseColor.a);
     } else {
         return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(colorAccum.rgb, baseColor.a);
         //return float4(baseColor);
+        //return float4(colorAccum, baseColor.a);
     }
 }

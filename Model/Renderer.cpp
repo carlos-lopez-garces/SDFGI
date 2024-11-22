@@ -636,7 +636,7 @@ void MeshSorter::RenderMeshes(
     GraphicsContext& context,
     GlobalConstants& globals)
 {
-	ASSERT(m_DSV != nullptr);
+    ASSERT(m_DSV != nullptr);
 
     Renderer::UpdateGlobalDescriptors();
 
@@ -649,11 +649,11 @@ void MeshSorter::RenderMeshes(
     context.SetDescriptorTable(kCommonSRVs, m_CommonTextures);
 
     // Set common shader constants
-	globals.ViewProjMatrix = m_Camera->GetViewProjMatrix();
-	globals.CameraPos = m_Camera->GetPosition();
+    globals.ViewProjMatrix = m_Camera->GetViewProjMatrix();
+    globals.CameraPos = m_Camera->GetPosition();
     globals.IBLRange = s_SpecularIBLRange - s_SpecularIBLBias;
     globals.IBLBias = s_SpecularIBLBias;
-	context.SetDynamicConstantBufferView(kCommonCBV, sizeof(GlobalConstants), &globals);
+    context.SetDynamicConstantBufferView(kCommonCBV, sizeof(GlobalConstants), &globals);
 
 	if (m_BatchType == kShadows)
 	{

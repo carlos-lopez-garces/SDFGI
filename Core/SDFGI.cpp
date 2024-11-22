@@ -26,6 +26,7 @@
 using namespace Graphics;
 using namespace DirectX;
 
+Vector3 customMinBounds = Vector3(0, 200, -200);
 namespace SDFGI {
 
     float GenerateRandomNumber(float min, float max) {
@@ -64,7 +65,7 @@ namespace SDFGI {
     // TODO: we'll need to be able to map a probe world space position or linear index to a 3D texture coordinate.
     void SDFGIProbeGrid::GenerateProbes(Vector3 &sceneMin) {
         probes.clear();
-        sceneMin = Vector3(-200.0f, 200, -200.0f);
+        //sceneMin = Vector3(-200.0f, 200, -200.0f);
         // TODO: make sure that grid really covers the bounding box.
         for (uint32_t x = 0; x < probeCount[0]; ++x) {
             for (uint32_t y = 0; y < probeCount[1]; ++y) {
@@ -85,7 +86,7 @@ namespace SDFGI {
         std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&, bool, bool)> renderFunc,
         DescriptorHeap *externalHeap
     )
-        : probeGrid(sceneBounds.GetDimensions(), Vector3(-400, 5, -400)), sceneBounds(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
+        : probeGrid(sceneBounds.GetDimensions(), customMinBounds), sceneBounds(sceneBounds), renderFunc(renderFunc), externalHeap(externalHeap) {
         InitializeTextures();
         InitializeViews();
         InitializeProbeBuffer();
@@ -304,7 +305,7 @@ namespace SDFGI {
         probeData.ProbeCount = probeGrid.probes.size();
         probeData.GridSize = Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
         probeData.ProbeSpacing = Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]);
-        probeData.SceneMinBounds = Vector3(-400, 5, -400);
+        probeData.SceneMinBounds = customMinBounds;
         probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
         probeData.GutterSize = gutterSize;
 
@@ -437,8 +438,8 @@ namespace SDFGI {
         Vector3 upVectors[6] = {
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f), 
-            Vector3(0.0f, 0.0f, -1.0f),
-            Vector3(0.0f, 0.0f, 1.0f), 
+            Vector3(-1.0f, 0.0f, 0.0f),
+            Vector3(1.0f, 0.0f, 0.0f),
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f) 
         };
@@ -531,7 +532,7 @@ namespace SDFGI {
         Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]),
         Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]),
         probeAtlasBlockResolution,
-        Vector3(-400, 5, -400),
+        customMinBounds,
         gutterSize,
         irradianceAtlas.GetWidth(),
         irradianceAtlas.GetHeight()

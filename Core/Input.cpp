@@ -221,7 +221,7 @@ namespace
         if (FAILED(s_DI->CreateDevice(GUID_SysMouse, &s_Mouse, nullptr)))
             ASSERT(false, "Mouse CreateDevice failed.");
         if (FAILED(s_Mouse->SetDataFormat(&c_dfDIMouse2)))
-            ASSERT(false, "Mouse SetDataFormat failed.");
+            //ASSERT(false, "Mouse SetDataFormat failed.");
         if (FAILED(s_Mouse->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE)))
             ASSERT(false, "Mouse SetCooperativeLevel failed.");
 

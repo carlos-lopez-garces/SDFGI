@@ -21,7 +21,7 @@ struct VSOutput
 
 Texture2D<float4>	texDiffuse		: register(t0);
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 void main(VSOutput vsOutput)
 {
     if (texDiffuse.Sample(defaultSampler, vsOutput.uv).a < 0.5)

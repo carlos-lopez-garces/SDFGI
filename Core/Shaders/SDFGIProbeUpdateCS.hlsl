@@ -112,12 +112,21 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             //IrradianceAtlas[probeTexCoord] = col;
 
             float2 o = float2((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution);
+            float2 og_uv = o;
             o *= float2(2.0, 2.0);
             o -= float2(1.0, 1.0);
 
             float3 decodedSphereNormal = octDecode(o);
             float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
             //float4 col = float4(decodedSphereNormal, 1.0);
+
+            //if (og_uv.x < 0.5) {
+            //    col = float4(0, 0, 0, 1);
+            //}
+            //else {
+            //    col = float4(1, 1, 1, 1);
+            //}
+            col = float4(og_uv, 0.0, 1.0);
             IrradianceAtlas[probeTexCoord] = col;
         }
     }

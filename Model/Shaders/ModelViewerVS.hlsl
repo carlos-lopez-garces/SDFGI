@@ -50,7 +50,7 @@ struct VSOutput
 #endif
 };
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 VSOutput main(VSInput vsInput, uint vertexID : SV_VertexID)
 {
     VSOutput vsOutput;

@@ -25,7 +25,7 @@ struct VSOutput
     float3 viewDir : TEXCOORD3;
 };
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 VSOutput main(uint VertID : SV_VertexID)
 {
     float2 ScreenUV = float2(uint2(VertID, VertID << 1) & 2);

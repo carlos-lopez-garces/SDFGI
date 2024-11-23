@@ -56,6 +56,7 @@ namespace Renderer
         kSkinMatrices,
         kSDFGISRVs,
         kSDFGICBV,
+        kCustomSamplers,
 
         kNumRootBindings
     };

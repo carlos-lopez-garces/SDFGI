@@ -30,7 +30,7 @@ struct VSOutput
     float2 uv : TexCoord0;
 };
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 VSOutput main(VSInput vsInput)
 {
     VSOutput vsOutput;

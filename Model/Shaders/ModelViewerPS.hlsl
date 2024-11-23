@@ -141,7 +141,7 @@ float3 ShadeFragmentWithProbes(
     // return probeCoord / GridSize;
 }
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 MRT main(VSOutput vsOutput)
 {
     MRT mrt;

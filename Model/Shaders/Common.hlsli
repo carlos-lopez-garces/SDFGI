@@ -1,3 +1,11 @@
+#ifndef __COMMON_HLSLI__
+#define __COMMON_HLSLI__
+SamplerState defaultSampler : register(s0);
+SamplerState cubeMapSampler : register(s1);
+SamplerComparisonState shadowSampler : register(s2);
+#endif // __COMMON_HLSLI__
+/*
+
 //
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
@@ -37,12 +45,14 @@
         "addressW = TEXTURE_ADDRESS_CLAMP," \
         "comparisonFunc = COMPARISON_GREATER_EQUAL," \
         "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT)," \
-    "StaticSampler(s12, maxAnisotropy = 8, visibility = SHADER_VISIBILITY_PIXEL)"
+    "StaticSampler(s12, maxAnisotropy = 8, visibility = SHADER_VISIBILITY_PIXEL)" \
+
 
 // Common (static) samplers
 SamplerState defaultSampler : register(s10);
 SamplerComparisonState shadowSampler : register(s11);
 SamplerState cubeMapSampler : register(s12);
+SamplerState bilinearSampler : register(s13);
 
 #ifndef ENABLE_TRIANGLE_ID
     #define ENABLE_TRIANGLE_ID 0
@@ -69,3 +79,5 @@ uint HashTriangleID(uint vertexID)
 #endif // ENABLE_TRIANGLE_ID
 
 #endif // __COMMON_HLSLI__
+
+*/

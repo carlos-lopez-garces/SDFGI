@@ -454,6 +454,7 @@ void ModelViewer::NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::
         {
             ScopedTimer _prof(L"Render Color", gfxContext);
 
+            //TODO Move this rendermeshes
             if (useSDFGI) {
                 gfxContext.SetDescriptorTable(Renderer::kSDFGISRVs, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
                 SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();

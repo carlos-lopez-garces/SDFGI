@@ -1,3 +1,4 @@
+
 //
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
@@ -13,17 +14,23 @@
 
 #include "Common.hlsli"
 
+//SamplerState bruhSampler : register(s24);
+
 Texture2D<float4> baseColorTexture          : register(t0);
 Texture2D<float3> metallicRoughnessTexture  : register(t1);
 Texture2D<float1> occlusionTexture          : register(t2);
 Texture2D<float3> emissiveTexture           : register(t3);
 Texture2D<float3> normalTexture             : register(t4);
 
-SamplerState baseColorSampler               : register(s0);
-SamplerState metallicRoughnessSampler       : register(s1);
-SamplerState occlusionSampler               : register(s2);
-SamplerState emissiveSampler                : register(s3);
-SamplerState normalSampler                  : register(s4);
+
+
+SamplerState baseColorSampler               : register(s10);
+SamplerState metallicRoughnessSampler       : register(s11);
+SamplerState occlusionSampler               : register(s12);
+SamplerState emissiveSampler                : register(s13);
+SamplerState normalSampler                  : register(s14);
+
+//SamplerState bilinearSampler                : register(s11);
 
 TextureCube<float3> radianceIBLTexture      : register(t10);
 TextureCube<float3> irradianceIBLTexture    : register(t11);
@@ -268,11 +275,9 @@ float2 signNotZero(float2 v) {
 float2 octEncode(float3 v) {
     float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
     float2 result = v.xy * (1.0 / l1norm);
-    
     if (v.z < 0.0) {
         result = (1.0 - abs(result.yx)) * signNotZero(result.xy);
     }
-    
     return result;
 }
 
@@ -324,7 +329,7 @@ float3 TestGI(
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
 
@@ -342,36 +347,52 @@ float3 TestGI(
         weightSum += weights[i];
 
         //float2 encodedDir = octEncode(normal);
-        float2 encodedDir = octEncode(normal);
+        //float2 encodedDir = octEncode(dirToProbe);
+        float2 encodedDir = float2(interpWeight.y, 0);
+
+        
+
+        //uint2 atlasCoord = uint2(GutterSize, GutterSize) + 
+        //    probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
+
+        //float2 texCoord = atlasCoord.xy + uint2(
+        //    (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
+        //    (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
+        //);
+
+        //texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
+
+        //irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord,/* int Probe Slice Index */ probeIndices[i].z), 0);
+        ////bilinearsampler
 
 
-        uint2 atlasCoord = uint2(GutterSize, GutterSize) + 
-            probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
 
-        float2 texCoord = atlasCoord.xy + uint2(
-            (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
-            (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
-        );
-
-        texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
-
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord,/* int Probe Slice Index */ probeIndices[i].z), 0);
-
-
-
-
-        resultIrradiance += weights[i] * irradiance[i];
+        //resultIrradiance += weights[i] * irradiance[i];
     }
 
 
-    if (weightSum > 0.0) {
-        // Normalize irradiance.
-        resultIrradiance /= weightSum;
-    }
-    else {
-        resultIrradiance = float4(1.0, 0.0, 0.0, 1.0);
-    }
+    //if (weightSum > 0.0) {
+    //    // Normalize irradiance.
+    //    resultIrradiance /= weightSum;
+    //}
+    //else {
+    //    resultIrradiance = float4(1.0, 0.0, 0.0, 1.0);
+    //}
+    float2 uv = float2(interpWeight.x, interpWeight.z);
+    float2 texCoord = uint2(GutterSize, GutterSize) + uint2(uv.x * ProbeAtlasBlockResolution, uv.y * ProbeAtlasBlockResolution);
+    texCoord /= float2(AtlasWidth, AtlasHeight);
 
+
+        //atlasCoord.xy + uint2(
+        //    //    (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
+        //    //    (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
+    resultIrradiance = float4(interpWeight.x, interpWeight.z, 0, 1);
+    resultIrradiance *= 5.0;
+
+    //resultIrradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord,/* int Probe Slice Index */ 0), 0);
+    //resultIrradiance = IrradianceAtlas.Sample(baseColorSampler, float3(texCoord, 0));
+    float depth = texSunShadow.SampleLevel(defaultSampler, texCoord * 80.0, -1).r;
+    //resultIrradiance = float4(depth, depth, depth, 1);
     return resultIrradiance.rgb;
 
 
@@ -408,7 +429,7 @@ float3 SampleIrradiance(
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
 
@@ -435,20 +456,21 @@ float3 SampleIrradiance(
 
         irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0);
 
-        resultIrradiance += weights[i] * irradiance[i];
+        //resultIrradiance += weights[i] * irradiance[i];
+        resultIrradiance = irradiance[i];
     }
 
-    if (weightSum > 0.0) {
-        // Normalize irradiance.
-        resultIrradiance /= weightSum;
-    } else {
-        resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
-    }
+    //if (weightSum > 0.0) {
+    //    // Normalize irradiance.
+    //    resultIrradiance /= weightSum;
+    //} else {
+    //    resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
+    //}
 
     return resultIrradiance.rgb;
 }
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 float4 main(VSOutput vsOutput) : SV_Target0
 {
     // Load and modulate textures
@@ -511,12 +533,12 @@ float4 main(VSOutput vsOutput) : SV_Target0
             return float4(1, 0, 1, 1);
             //return float4(colorAccum.rgb, baseColor.a);
         }
-        return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
-        //return float4(col.rgb, baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
+        return float4(col.rgb, baseColor.a);
     } else {
-        return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(colorAccum.rgb, baseColor.a);
-        //return float4(baseColor);
+        return float4(baseColor);
         //return float4(colorAccum, baseColor.a);
     }
 }

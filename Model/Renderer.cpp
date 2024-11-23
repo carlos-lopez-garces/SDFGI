@@ -22,6 +22,8 @@
 #include "../Core/BufferManager.h"
 #include "../Core/ShadowCamera.h"
 
+#include "CompiledShaders/TestBilinearDefaultPS.h"
+
 #include "CompiledShaders/DefaultVS.h"
 #include "CompiledShaders/DefaultSkinVS.h"
 #include "CompiledShaders/DefaultPS.h"
@@ -74,6 +76,11 @@ namespace Renderer
     GraphicsPSO m_DefaultPSO(L"Renderer: Default PSO"); // Not finalized.  Used as a template.
 
     DescriptorHandle m_CommonTextures;
+
+
+    DescriptorHandle m_CustomSamplerHandles;
+    //DescriptorHandle SamplerHandles = Renderer::s_SamplerHeap.Alloc(kNumTextures);
+    //uint32_t SamplerDescriptorTable = Renderer::s_SamplerHeap.GetOffsetOfHandle(SamplerHandles);
 }
 
 void Renderer::Initialize(void)
@@ -82,22 +89,30 @@ void Renderer::Initialize(void)
         return;
 
     SamplerDesc DefaultSamplerDesc;
+    DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     DefaultSamplerDesc.MaxAnisotropy = 8;
 
     SamplerDesc CubeMapSamplerDesc = DefaultSamplerDesc;
     //CubeMapSamplerDesc.MaxLOD = 6.0f;
 
     m_RootSig.Reset(kNumRootBindings, 3);
-    m_RootSig.InitStaticSampler(10, DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
-    m_RootSig.InitStaticSampler(11, SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
-    m_RootSig.InitStaticSampler(12, CubeMapSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    
+    m_RootSig.InitStaticSampler(0, CubeMapSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig.InitStaticSampler(1, CubeMapSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig.InitStaticSampler(2, SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+ 
+    //SamplerBilinearClampDe
+    //m_RootSig.InitStaticSampler(23, SamplerBilinearClampDesc, D3D12_SHADER_VISIBILITY_PIXEL); //SamplerBilinearClampDesc
+    //Samp
+    //m_RootSig.InitStaticSampler(13, SamplerBilinearClampDesc, D3D12_SHADER_VISIBILITY_PIXEL); //SamplerBilinearClampDesc
     m_RootSig[kMeshConstants].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
     m_RootSig[kMaterialConstants].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSig[kMaterialSRVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10, D3D12_SHADER_VISIBILITY_PIXEL);
-    m_RootSig[kMaterialSamplers].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 10, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kMaterialSamplers].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 10, 10, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSig[kCommonSRVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 10, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSig[kCommonCBV].InitAsConstantBuffer(1);
     m_RootSig[kSkinMatrices].InitAsBufferSRV(20, D3D12_SHADER_VISIBILITY_VERTEX);
+    m_RootSig[kCustomSamplers].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 20, 3, D3D12_SHADER_VISIBILITY_PIXEL);
     D3D12_DESCRIPTOR_RANGE srvRange;
     srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
     srvRange.NumDescriptors = 1;
@@ -212,7 +227,8 @@ void Renderer::Initialize(void)
     m_DefaultPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_DefaultPSO.SetRenderTargetFormats(1, &ColorFormat, DepthFormat);
     m_DefaultPSO.SetVertexShader(g_pDefaultVS, sizeof(g_pDefaultVS));
-    m_DefaultPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
+    //m_DefaultPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
+    m_DefaultPSO.SetPixelShader(g_pTestBilinearDefaultPS, sizeof(g_pTestBilinearDefaultPS));
 
     // Skybox PSO
 
@@ -235,25 +251,81 @@ void Renderer::Initialize(void)
     // Allocate a descriptor table for the common textures
     m_CommonTextures = s_TextureHeap.Alloc(8);
 
-    uint32_t DestCount = 8;
-    uint32_t SourceCounts[] = { 1, 1, 1, 1, 1, 1, 1, 1 };
-
-    D3D12_CPU_DESCRIPTOR_HANDLE SourceTextures[] =
     {
-        GetDefaultTexture(kBlackCubeMap),
-        GetDefaultTexture(kBlackCubeMap),
-        g_SSAOFullScreen.GetSRV(),
-        g_ShadowBuffer.GetSRV(),
-        Lighting::m_LightBuffer.GetSRV(),
-        Lighting::m_LightShadowArray.GetSRV(),
-        Lighting::m_LightGrid.GetSRV(),
-        Lighting::m_LightGridBitMask.GetSRV(),
-    };
+        uint32_t DestCount = 8;
+        uint32_t SourceCounts[] = { 1, 1, 1, 1, 1, 1, 1, 1 };
 
-    g_Device->CopyDescriptors(1, &m_CommonTextures, &DestCount, DestCount, SourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        D3D12_CPU_DESCRIPTOR_HANDLE SourceTextures[] =
+        {
+            GetDefaultTexture(kBlackCubeMap),
+            GetDefaultTexture(kBlackCubeMap),
+            g_SSAOFullScreen.GetSRV(),
+            g_ShadowBuffer.GetSRV(),
+            Lighting::m_LightBuffer.GetSRV(),
+            Lighting::m_LightShadowArray.GetSRV(),
+            Lighting::m_LightGrid.GetSRV(),
+            Lighting::m_LightGridBitMask.GetSRV(),
+        };
+
+        g_Device->CopyDescriptors(1, &m_CommonTextures, &DestCount, DestCount, SourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    }
 
     g_SSAOFullScreenID = g_SSAOFullScreen.GetVersionID();
     g_ShadowBufferID = g_ShadowBuffer.GetVersionID();
+
+
+
+
+    {
+        m_CustomSamplerHandles = s_SamplerHeap.Alloc(3);
+        uint32_t DestCount = 3;
+        D3D12_CPU_DESCRIPTOR_HANDLE SourceSamplers[3];
+        SamplerDesc samplerDesc;
+        {
+            samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // Bilinear filtering
+            samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            samplerDesc.MipLODBias = 0.0f;
+            samplerDesc.MaxAnisotropy = 1;
+            samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+            samplerDesc.MinLOD = 0.0f;
+            samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+        }
+        for (int i = 0; i < 3; i++) {
+            SourceSamplers[i] = samplerDesc.CreateDescriptor();
+        }
+
+        
+
+        uint32_t SourceCounts[] = { 1, 1, 1 };
+        g_Device->CopyDescriptors(1, &m_CustomSamplerHandles, &DestCount,
+            DestCount, SourceSamplers, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    }
+    
+
+    //DescriptorHandle SamplerHandles = Renderer::s_SamplerHeap.Alloc(kNumTextures);
+    //uint32_t SamplerDescriptorTable = Renderer::s_SamplerHeap.GetOffsetOfHandle(SamplerHandles);
+    //g_SamplerPermutations[addressModes] = SamplerDescriptorTable;
+    //tableOffsets[matIdx] = SRVDescriptorTable | SamplerDescriptorTable << 16;
+
+    //D3D12_CPU_DESCRIPTOR_HANDLE SourceSamplers[kNumTextures];
+    //for (uint32_t j = 0; j < kNumTextures; ++j)
+    //{
+    //    SourceSamplers[j] = GetSampler(addressModes & 0xF);
+    //    addressModes >>= 4;
+    //}
+    //g_Device->CopyDescriptors(1, &SamplerHandles, &DestCount,
+    //    DestCount, SourceSamplers, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    // 
+    
+    //DescriptorHandle SamplerHandles = Renderer::s_SamplerHeap.Alloc(kNumTextures);
+    //uint32_t SamplerDescriptorTable = Renderer::s_SamplerHeap.GetOffsetOfHandle(SamplerHandles);
+
+
+
+
 
     s_Initialized = true;
 }
@@ -281,6 +353,7 @@ void Renderer::UpdateGlobalDescriptors(void)
 
     g_SSAOFullScreenID = g_SSAOFullScreen.GetVersionID();
     g_ShadowBufferID = g_ShadowBuffer.GetVersionID();
+
 
 }
 
@@ -361,7 +434,9 @@ uint8_t Renderer::GetPSO(uint16_t psoFlags)
             if (psoFlags & kHasUV1)
             {
                 ColorPSO.SetVertexShader(g_pDefaultSkinVS, sizeof(g_pDefaultSkinVS));
-                ColorPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
+                //ColorPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
+                ColorPSO.SetPixelShader(g_pTestBilinearDefaultPS, sizeof(g_pTestBilinearDefaultPS));
+                //g_pTestBilinearDefaultPS
             }
             else
             {
@@ -390,7 +465,10 @@ uint8_t Renderer::GetPSO(uint16_t psoFlags)
             if (psoFlags & kHasUV1)
             {
                 ColorPSO.SetVertexShader(g_pDefaultVS, sizeof(g_pDefaultVS));
-                ColorPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
+                //ColorPSO.SetPixelShader(g_pDefaultPS, sizeof(g_pDefaultPS));
+                ColorPSO.SetPixelShader(g_pTestBilinearDefaultPS, sizeof(g_pTestBilinearDefaultPS));
+
+                //g_pTestBilinearDefaultPS
             }
             else
             {
@@ -494,7 +572,7 @@ void Renderer::DrawShadowBuffer(GraphicsContext& gfxContext, const D3D12_VIEWPOR
         VisShadowBufferRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
         // 1 Sampler for Pixel Shader
         SamplerDesc DepthSamplerDesc;
-        DepthSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+        DepthSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
         DepthSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         DepthSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         DepthSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -655,6 +733,7 @@ void MeshSorter::RenderMeshes(
     globals.IBLBias = s_SpecularIBLBias;
     context.SetDynamicConstantBufferView(kCommonCBV, sizeof(GlobalConstants), &globals);
 
+    context.SetDescriptorTable(kCustomSamplers, m_CustomSamplerHandles);
 	if (m_BatchType == kShadows)
 	{
 		context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
@@ -753,6 +832,7 @@ void MeshSorter::RenderMeshes(
             context.SetConstantBuffer(kMaterialConstants, object.materialCBV);
             context.SetDescriptorTable(kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
             context.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
+            
             if (mesh.numJoints > 0)
             {
                 ASSERT(object.skeleton != nullptr, "Unspecified joint matrix array");

@@ -20,7 +20,7 @@ struct VSOutput
 };
 
 Texture2D<float4> baseColorTexture          : register(t0);
-SamplerState baseColorSampler               : register(s0);
+SamplerState baseColorSampler               : register(s10);
 
 cbuffer MaterialConstants : register(b0)
 {
@@ -31,7 +31,7 @@ cbuffer MaterialConstants : register(b0)
     uint flags;
 }
 
-[RootSignature(Renderer_RootSig)]
+//[RootSignature(Renderer_RootSig)]
 void main(VSOutput vsOutput)
 {
     float cutoff = f16tof32(flags >> 16);

@@ -26,7 +26,7 @@
 using namespace Graphics;
 using namespace DirectX;
 
-Vector3 customMinBounds = Vector3(0, 200, -200);
+Vector3 customMinBounds = Vector3(130, 200, -200);
 namespace SDFGI {
 
     float GenerateRandomNumber(float min, float max) {
@@ -337,7 +337,7 @@ namespace SDFGI {
         atlasVizRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, /*register=t*/0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
         // Depth atlas.
         atlasVizRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, /*register=t*/1, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-        atlasVizRS.InitStaticSampler(0, SamplerPointClampDesc); //SamplerLinearClampDesc
+        atlasVizRS.InitStaticSampler(0, SamplerPointClampDesc); //SamplerPointClampDesc SamplerBilinearClampDesc
         atlasVizRS.Finalize(L"SDFGI Visualization Root Signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
         atlasVizPSO.SetRootSignature(atlasVizRS);

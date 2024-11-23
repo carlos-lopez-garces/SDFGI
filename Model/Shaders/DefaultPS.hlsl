@@ -403,6 +403,9 @@ float3 SampleIrradiance(
 
         weightSum += weights[i];
 
+        float depth = DepthAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0);
+        // irradiance[i] = float4(0, depth, 0, 1.0);
+
         resultIrradiance += weights[i] * irradiance[i];
     }
 

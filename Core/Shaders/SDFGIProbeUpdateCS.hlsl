@@ -58,7 +58,7 @@ float3 WorldSpaceToTextureSpace(float3 worldPos) {
     // assuming a 128 * 128 * 128 texture, but we could make this dynamic
     // u' = u * (tmax - tmin) + tmin
     // where tmax == 127 and tmin == 0
-    return texCoord * 127.0;
+    return texCoord * 511;
 }
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection) {
@@ -69,11 +69,11 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection) {
     float depth = start;
     for (int i = 0; i < MAX_MARCHING_STEPS; i++) {
         int3 hit = (eye + depth * marchingDirection);
-        if (any(hit > int3(127, 127, 127)) || any(hit < int3(0, 0, 0))) {
+        if (any(hit > int3(511, 511, 511)) || any(hit < int3(0, 0, 0))) {
             return float4(0., 0., 0., 1.);
         }
-        hit.y = 127 - hit.y;
-        hit.z = 127 - hit.z;
+        hit.y = 511 - hit.y;
+        hit.z = 511 - hit.z;
         float dist = SDFTex[hit];
         if (dist == 0.f) {
             return AlbedoTex[hit];

@@ -52,7 +52,7 @@
 #define ENABLE_DEPTH_PREPASS 0
 
 // Enable SDF Ray-marching test
-#define RAYMARCH_TEST 0
+#define RAYMARCH_TEST 1
 
 #include <Windows.h>
 #include <wrl/client.h>

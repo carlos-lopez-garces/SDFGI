@@ -441,7 +441,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //       512 * 512, and that the 3D texture is 128 * 128 * 128. We could 
         //       make these CBV's if we want. 
         float screenResolution = 512.0;
-        float textureResolution = 128.0;
+        float textureResolution = 512.0;
         float2 uv = vsOutput.position.xy / screenResolution;  // normalized UV coords
 
         uint3 voxelCoords = GetVoxelCoords(vsOutput.position.xyz, uv, textureResolution, axis);

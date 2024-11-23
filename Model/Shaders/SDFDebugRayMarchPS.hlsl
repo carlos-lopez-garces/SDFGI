@@ -61,14 +61,14 @@ float3 worldToTex(float3 worldPos) {
     // assuming a 128 * 128 * 128 texture, but this can be changed
     // u' = u * (tmax - tmin) + tmin
     // where tmax == 127 and tmin == 0
-    return texCoord * 127.0;
+    return texCoord * 511.0;
 }
 
 // hm I'm not actually sure if I need texToWorld
 float3 texToWorld(uint3 texPos) {
     // normalize texPos
     uint tmin = 0; 
-    uint tmax = 127; 
+    uint tmax = 511; 
     float3 range = tmax - tmin; 
     float3 uvw = float3(0, 0, 0);
     uvw.x = (texPos.x - tmin) / range; 
@@ -154,11 +154,11 @@ int3 shortestDistanceToSurfaceTexSpace(float3 eye, float3 marchingDirection, out
     depth = start;
     for (int i = 0; i < MAX_MARCHING_STEPS; i++) {
         int3 hit = (eye + depth * marchingDirection);
-        if (any(hit > int3(127, 127, 127)) || any(hit < int3(0, 0, 0))) {
+        if (any(hit > int3(511, 511, 511)) || any(hit < int3(0, 0, 0))) {
             return int3(-1, -1, -1);
         }
-        hit.y = 127 - hit.y; 
-        hit.z = 127 - hit.z; 
+        hit.y = 511 - hit.y; 
+        hit.z = 511 - hit.z; 
         float dist = SDFTex[hit];
         if (dist == 0.f) {
             return hit;
@@ -182,7 +182,7 @@ float4 main(VSOutput input) : SV_TARGET{
 
     if (hit.x == -1) {
         // Didn't hit anything
-        return float4(0.0, 0.0, 0.0, 0.0);
+        return float4(0.0, 0.0, 0.0, 1.0);
     }
 
     // -- test that we're getting UAV's --

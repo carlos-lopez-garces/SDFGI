@@ -80,6 +80,30 @@ float3 spherical_fibonacci(uint index, uint sample_count) {
     return float3(cos(phi) * sin_theta, sin(phi) * sin_theta, cos_theta);
 }
 
+//Returns in [0, 1] UV space
+float2 sampleCube(
+    float3 v)
+{
+    float3 vAbs = abs(v);
+    float ma;
+    float2 uv;
+    if (vAbs.z >= vAbs.x && vAbs.z >= vAbs.y)
+    {
+        ma = 0.5 / vAbs.z;
+        uv = float2(v.z < 0.0 ? v.x : -v.x, -v.y);
+    }
+    else if (vAbs.y >= vAbs.x)
+    {
+        ma = 0.5 / vAbs.y;
+        uv = float2(v.x, v.y < 0.0 ? v.z : -v.z);
+    }
+    else
+    {
+        ma = 0.5 / vAbs.x;
+        uv = float2(v.x < 0.0 ? -v.z : v.z, -v.y);
+    }
+    return uv * ma + 0.5;
+}
 
 [numthreads(1, 1, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
@@ -111,18 +135,92 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             //float4 col = float4((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution, 0, 1);
             //IrradianceAtlas[probeTexCoord] = col;
 
-            float2 o = float2((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution);
+            float2 o = float2(((float)i + 0.5)/ ProbeAtlasBlockResolution, ((float)j + 0.5) / ProbeAtlasBlockResolution);
+            //o += float2(0.5, 0.5);
+            //for (int k = 0; k < 4; k++) {
+            //    o += float2()
+            //}
+
             o *= float2(2.0, 2.0);
             o -= float2(1.0, 1.0);
+
 
             float3 decodedSphereNormal = octDecode(o);
             float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
             //float4 col = float4(decodedSphereNormal, 1.0);
             //col = float4(1, 0, 0, 1);
+            float2 uv = sampleCube(decodedSphereNormal);
+
+            col = float4(uv, 0, 1);
+
+
+
+            int faceIndex = GetFaceIndex(decodedSphereNormal);
+
+            uint textureIndex = faceIndex;
+
+            // TODO: sample SDF for color and depth in direction 'dir'.
+
+            float4 irradianceSample = ProbeCubemapArray.SampleLevel(LinearSampler, float3(uv, textureIndex), 0);
+
+            col = irradianceSample;
+
+
+
+
+
+#if 0
+            if (faceIndex == 0) {
+                col = float4(1, 0, 0, 1);
+            }
+            else if (faceIndex == 1) {
+                col = float4(0, 1, 0, 1);
+            }
+            else if (faceIndex == 2) {
+                col = float4(0, 0, 1, 1);
+            }
+            else if (faceIndex == 3) {
+                col = float4(1, 1, 0, 1);
+            }
+            else if (faceIndex == 4) {
+                col = float4(0, 1, 1, 1);
+            }
+            else if (faceIndex == 5) {
+                col = float4(1, 1, 1, 1);
+            }
+#endif
+#if 0
+            o += float2(1.0, 1.0);
+            o *= 0.5;
+            col = float4(o.x, o.y, 0, 1);
+#endif
+
             IrradianceAtlas[probeTexCoord] = col;
         }
     }
 
+    //for (int i = 0; i < ProbeAtlasBlockResolution; i++) {
+    //    int j = ProbeAtlasBlockResolution - 1;
+    //    uint3 probeTexCoord = atlasCoordStart_SS + uint3(i, j + 1, 0);
+
+    //    float2 o = float2((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution);
+    //    o *= float2(2.0, 2.0);
+    //    o -= float2(1.0, 1.0);
+    //    float3 decodedSphereNormal = octDecode(o);
+    //    float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
+    //    IrradianceAtlas[probeTexCoord] = col;
+    //}
+    //for (int i = 0; i < ProbeAtlasBlockResolution; i++) {
+    //    int j = ProbeAtlasBlockResolution - 1;
+    //    uint3 probeTexCoord = atlasCoordStart_SS + uint3(j + 1, i, 0);
+
+    //    float2 o = float2((float)j / ProbeAtlasBlockResolution, (float)i / ProbeAtlasBlockResolution);
+    //    o *= float2(2.0, 2.0);
+    //    o -= float2(1.0, 1.0);
+    //    float3 decodedSphereNormal = octDecode(o);
+    //    float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
+    //    IrradianceAtlas[probeTexCoord] = col;
+    //}
     /*
     
     uint probeIndex = dispatchThreadID.x 

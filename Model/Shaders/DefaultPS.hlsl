@@ -343,24 +343,32 @@ float3 TestGI(
         weightSum += weights[i];
 
         //float2 encodedDir = octEncode(normal);
-        float2 encodedDir = octEncode(normal);
-
-
+        float2 encodedDir = octEncode(normalize(normal));
+        float2 uv = (encodedDir * 0.5) + float2(0.5, 0.5);
+        uv = (uv * float2(ProbeAtlasBlockResolution, ProbeAtlasBlockResolution)) / float2(AtlasWidth, AtlasHeight);
+        uv += float2(probeIndices[i].xy) * float2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
         uint2 atlasCoord = probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
         //atlasCoord = uint2(2, 3);
         float2 texCoord = atlasCoord.xy + uint2(
             (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
             (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
         );
+
+
         //float2 texCoord = atlasCoord + float2(0.0 * ProbeAtlasBlockResolution, 0.0 * ProbeAtlasBlockResolution);
 
         texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
 
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord, /* int Probe Slice Index */ probeIndices[i].z), 0);
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ uv, /* int Probe Slice Index */ probeIndices[i].z), 0);
 
 
+#if 0
 
-
+        //irradiance[i] = float4(uv, 0, 1);
+        //irradiance[i] = float4(1, 0, 0, 1);
+        float2 bruh = (encodedDir * 0.5) + float2(0.5, 0.5);
+        irradiance[i] = float4(bruh, 0, 1);
+#endif
         resultIrradiance = 1 * irradiance[i];
     }
 
@@ -498,6 +506,14 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
     // TODO: Shade each light using Forward+ tiles
     //
+
+#if 0
+    float2 uv = vsOutput.position.xy / float2(1920.0, 1080.0);
+    //IrradianceAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0);
+    float4 col = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, 0), 0);
+    return float4(col.rgb, 1.0);
+#endif
+
 #if 0 //View normals
     return float4(0.5 * (normalize(vsOutput.normal) + float3(1.0, 1.0, 1.0)), 1.0);
 #endif
@@ -516,7 +532,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
         return float4(col.rgb, baseColor.a);
         //return float4(col.rgb, baseColor.a);
     } else {
-        return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        return float4(colorAccum.rgb, baseColor.a);
         //return float4(colorAccum.rgb, baseColor.a);
         //return float4(baseColor);
         //return float4(colorAccum, baseColor.a);

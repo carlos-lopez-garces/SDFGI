@@ -441,7 +441,7 @@ namespace SDFGI {
         Vector3 upVectors[6] = {
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f), 
-            Vector3(-1.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 0.0f, 1.0f),
             Vector3(1.0f, 0.0f, 0.0f),
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f) 
@@ -456,7 +456,7 @@ namespace SDFGI {
                 Camera faceCamera;
                 faceCamera.SetPosition(probePosition);
                 faceCamera.SetLookDirection(lookDirections[face], upVectors[face]);
-                faceCamera.SetPerspectiveMatrix(XM_PI / 2.0f, 1.0f, camera.GetNearClip(), camera.GetFarClip());
+                faceCamera.SetPerspectiveMatrix(XM_PIDIV2, 1.0f, camera.GetNearClip(), camera.GetFarClip());
                 faceCamera.ReverseZ(camera.GetReverseZ());
                 faceCamera.Update();
 
@@ -556,8 +556,8 @@ namespace SDFGI {
         //RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
-        RenderProbeAtlasViz(context, camera);
-        //RenderCubemapViz(context, camera);
+        //RenderProbeAtlasViz(context, camera);
+        RenderCubemapViz(context, camera);
 
         RenderProbeViz(context, camera);
     }

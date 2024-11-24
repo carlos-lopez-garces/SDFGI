@@ -99,8 +99,13 @@ CREATE_APPLICATION( ModelViewer )
 //NumVar g_SunInclination("Viewer/Lighting/Sun Inclination", 0.75f, 0.0f, 1.0f, 0.01f );
 
 //Lighting Settings for Sonic
+//ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
+//NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -0.0f, -0.0f, 0.0f, 0.1f);
+//NumVar g_SunInclination("Viewer/Lighting/Sun Inclination", 0.1f, -1.0f, 1.0f, 0.01f);
+
+//CornellSphere
 ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
-NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -0.0f, -0.0f, 0.0f, 0.1f);
+NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -1.5f, -100.0f, 100.0f, 0.1f);
 NumVar g_SunInclination("Viewer/Lighting/Sun Inclination", 0.1f, -1.0f, 1.0f, 0.01f);
 
 void ChangeIBLSet(EngineVar::ActionType);

@@ -265,16 +265,16 @@ float2 signNotZero(float2 v) {
     return float2((v.x >= 0.0 ? 1.0 : -1.0), (v.y >= 0.0 ? 1.0 : -1.0));
 }
 
+//Returns in [-1, 1] space
 float2 octEncode(float3 v) {
     float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
     float2 result = v.xy * (1.0 / l1norm);
-    
     if (v.z < 0.0) {
         result = (1.0 - abs(result.yx)) * signNotZero(result.xy);
     }
-    
     return result;
 }
+
 
 float3 ACESToneMapping(float3 color) {
     const float a = 2.51f;
@@ -324,16 +324,17 @@ float3 TestGI(
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
 
         // Exclude probes behind the fragment.
         float normalDotDir = dot(normal, dirToProbe);
-        if (normalDotDir <= 0.0) {
-            weights[i] = 0.0;
-            continue;
-        }
+        //if (normalDotDir <= 0.0) {
+        //    weights[i] = 0.0;
+        //    continue;
+        //}
+        normalDotDir = abs(normalDotDir);
 
         float distance = length(probeWorldPos - fragmentWorldPos);
         // Prevent near-zero distances.
@@ -345,32 +346,32 @@ float3 TestGI(
         float2 encodedDir = octEncode(normal);
 
 
-        uint2 atlasCoord = uint2(GutterSize, GutterSize) + 
-            probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
-
+        uint2 atlasCoord = probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
+        //atlasCoord = uint2(2, 3);
         float2 texCoord = atlasCoord.xy + uint2(
             (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
             (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
         );
+        //float2 texCoord = atlasCoord + float2(0.0 * ProbeAtlasBlockResolution, 0.0 * ProbeAtlasBlockResolution);
 
         texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
 
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord,/* int Probe Slice Index */ probeIndices[i].z), 0);
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ texCoord, /* int Probe Slice Index */ probeIndices[i].z), 0);
 
 
 
 
-        resultIrradiance += weights[i] * irradiance[i];
+        resultIrradiance = 1 * irradiance[i];
     }
 
 
-    if (weightSum > 0.0) {
-        // Normalize irradiance.
-        resultIrradiance /= weightSum;
-    }
-    else {
-        resultIrradiance = float4(1.0, 0.0, 0.0, 1.0);
-    }
+    //if (weightSum > 0.0) {
+    //    // Normalize irradiance.
+    //    resultIrradiance /= weightSum;
+    //}
+    //else {
+    //    resultIrradiance = float4(1.0, 0.0, 0.0, 1.0);
+    //}
 
     return resultIrradiance.rgb;
 
@@ -425,7 +426,7 @@ float3 SampleIrradiance(
         weights[i] = normalDotDir * distanceWeight;
         weightSum += weights[i];
 
-        float2 encodedDir = octEncode(normal);
+        float2 encodedDir = octEncode(normalize(normal));
         uint3 atlasCoord = probeIndices[i] * uint3(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize, 1);
         float2 texCoord = atlasCoord.xy + uint2(
             (encodedDir.x * 0.5 + 0.5) * (ProbeAtlasBlockResolution - GutterSize),
@@ -508,10 +509,11 @@ float4 main(VSOutput vsOutput) : SV_Target0
         if (col.x == 1 && col.y == 0 && col.z == 1) {
             //return float4(col, 1.0);
             //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-            return float4(1, 0, 1, 1);
+            return float4(0, 0, 0, 1);
             //return float4(colorAccum.rgb, baseColor.a);
         }
-        return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
+        return float4(col.rgb, baseColor.a);
         //return float4(col.rgb, baseColor.a);
     } else {
         return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);

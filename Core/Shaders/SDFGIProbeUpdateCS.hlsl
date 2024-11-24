@@ -100,8 +100,8 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 
     //In Screenspace, 0,0 = top left, (width - 1, height -1) = bot right
     uint3 atlasCoordStart_SS = uint3(
-        GutterSize + dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
-        GutterSize + dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
+        dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
+        dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
         dispatchThreadID.z
     );
 
@@ -118,6 +118,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             float3 decodedSphereNormal = octDecode(o);
             float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
             //float4 col = float4(decodedSphereNormal, 1.0);
+            //col = float4(1, 0, 0, 1);
             IrradianceAtlas[probeTexCoord] = col;
         }
     }

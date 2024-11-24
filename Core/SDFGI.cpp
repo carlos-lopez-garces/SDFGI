@@ -26,7 +26,8 @@
 using namespace Graphics;
 using namespace DirectX;
 
-Vector3 customMinBounds = Vector3(0, 200, -200);
+//Vector3 customMinBounds = Vector3(0, 200, -200);
+Vector3 customMinBounds = Vector3(-300, 200, -300);
 namespace SDFGI {
 
     float GenerateRandomNumber(float min, float max) {
@@ -47,7 +48,7 @@ namespace SDFGI {
     // TODO: grid has to be a perfect square.
     SDFGIProbeGrid::SDFGIProbeGrid(Vector3 &sceneSize, Vector3 &sceneMin) {
         //float spacing = 2000.0f;
-        float spacing = 400.0f;
+        float spacing = 600.0f;
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
         probeSpacing[2] = spacing;
@@ -112,8 +113,8 @@ namespace SDFGI {
         uint32_t depth = probeGrid.probeCount[2];
         probeCount = width * height * depth;
 
-        uint32_t atlasWidth = (width * probeAtlasBlockResolution) + (width + 1) * gutterSize;
-        uint32_t atlasHeight = (height * probeAtlasBlockResolution) + (height + 1) * gutterSize;
+        uint32_t atlasWidth = (width * probeAtlasBlockResolution) + (width) * gutterSize;
+        uint32_t atlasHeight = (height * probeAtlasBlockResolution) + (height) * gutterSize;
         uint32_t atlasDepth = depth; 
 
         irradianceAtlas.CreateArray(

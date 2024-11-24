@@ -54,7 +54,7 @@ cbuffer GlobalConstants : register(b1)
 }
 
 cbuffer SDFGIConstants : register(b2) {
-    float3 GridSize;
+    int3 GridSize;
     float Pad0;
 
     float3 ProbeSpacing;
@@ -85,35 +85,6 @@ cbuffer VoxelConsts : register(b3)
 
 RWTexture3D<uint> SDFGIVoxelAlbedo : register(u0);
 RWTexture3D<uint4> SDFGIVoxelVoronoi : register(u1);
-
-uint3 GetVoxelCoords(float3 position, float2 uv, float textureResolution, int axis)
-{
-    uint x, y, z;
-
-    switch (axis) {
-    case 0: // X-axis pass
-        x = (1. - saturate(position.z)) * textureResolution;
-        y = uv.y * textureResolution;
-        z = uv.x * textureResolution;
-        break;
-    case 1: // Y-axis pass
-        x = (1. - uv.x) * textureResolution;
-        y = saturate(position.z) * textureResolution;
-        z = uv.y * textureResolution;
-        break;
-    case 2: // Z-axis pass
-        x = uv.x * textureResolution;
-        y = uv.y * textureResolution;
-        z = saturate(position.z) * textureResolution;
-        break;
-    default:
-        return uint3(0, 0, 0); // Invalid axis
-    }
-
-    return uint3(clamp(x, 0, textureResolution - 1),
-        clamp(y, 0, textureResolution - 1),
-        clamp(z, 0, textureResolution - 1));
-}
 
 struct VSOutput
 {
@@ -213,6 +184,79 @@ float G_Shlick_Smith_Hable(SurfaceProperties Surface, LightProperties Light)
     return 1.0 / lerp(Light.LdotH * Light.LdotH, 1, Surface.alphaSqr * 0.25);
 }
 
+//
+//  Voxelization Helper Functions
+//
+
+uint3 GetVoxelCoords(float3 position, float2 uv, float textureResolution, int axis)
+{
+    uint x, y, z;
+
+    switch (axis) {
+    case 0: // X-axis pass
+        x = (1. - saturate(position.z)) * textureResolution;
+        y = uv.y * textureResolution;
+        z = uv.x * textureResolution;
+        break;
+    case 1: // Y-axis pass
+        x = (1. - uv.x) * textureResolution;
+        y = saturate(position.z) * textureResolution;
+        z = uv.y * textureResolution;
+        break;
+    case 2: // Z-axis pass
+        x = uv.x * textureResolution;
+        y = uv.y * textureResolution;
+        z = saturate(position.z) * textureResolution;
+        break;
+    default:
+        return uint3(0, 0, 0); // Invalid axis
+    }
+
+    return uint3(clamp(x, 0, textureResolution - 1),
+        clamp(y, 0, textureResolution - 1),
+        clamp(z, 0, textureResolution - 1));
+}
+
+// Converts a uint representing an RGBA8 color to a float4
+float4 UnpackRGBA8(uint packedColor) {
+    float4 color;
+    color.r = ((packedColor >> 24) & 0xFF); // Extract red and normalize
+    color.g = ((packedColor >> 16) & 0xFF); // Extract green and normalize
+    color.b = ((packedColor >> 8) & 0xFF);  // Extract blue and normalize
+    color.a = (packedColor & 0xFF);         // Extract alpha and normalize
+    return color;
+}
+
+// Converts a float4 to a uint representing an RGBA8 color
+uint PackRGBA8(float4 color) {
+    uint packedColor = 0;
+    packedColor |= (uint)(color.r) << 24; // Pack red
+    packedColor |= (uint)(color.g) << 16; // Pack green
+    packedColor |= (uint)(color.b) << 8;  // Pack blue
+    packedColor |= (uint)(color.a);       // Pack alpha
+    return packedColor;
+}
+
+void ImageAtomicRGBA8Avg(RWTexture3D<uint> img, uint3 coords, float4 val) {
+    val.xyz *= 255.f;
+    val.w = 1.f;
+    uint newVal = PackRGBA8(val);
+    uint prevStoredVal = 0;
+    uint curStoredVal;
+    // Loop as long as destination value gets changed by other threads
+    do {
+        InterlockedCompareExchange(img[coords], prevStoredVal, newVal, curStoredVal);
+        if (curStoredVal == prevStoredVal) // sucessfully stored into image
+            break;
+        prevStoredVal = curStoredVal;
+        float4 rval = UnpackRGBA8(curStoredVal);
+        rval.xyz *= rval.w;          // Denormalize
+        float4 curValF = rval + val; // Add new value
+        //curValF = float4(1., 0., 0., 0.); 
+        curValF.xyz /= curValF.w;    // Renormalize
+        newVal = PackRGBA8(curValF);
+    } while (true);
+}
 
 // A microfacet based BRDF.
 // alpha:    This is roughness squared as in the Disney PBR model by Burley et al.
@@ -346,14 +390,92 @@ float2 GetUV(float3 direction, uint3 probeIndex) {
     return texCoord;
 }
 
-float3 SampleIrradiance(
-    float3 fragmentWorldPos,       
+float3 TestGI(
+    float3 fragmentWorldPos,
     float3 normal
 ) {
-    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
-    float3 probeCoord = floor(localPos); 
+    float3 localPos = (fragmentWorldPos - SceneMinBounds) / (float)ProbeSpacing;
+    //float3 localPos = (fragmentWorldPos - SceneMinBounds);
+    //localPos.x /= 600.0;
+    //localPos.y /= 600.0;
+    //localPos.z /= 600.0;
+
+    //bool hasNegative = any(localPos < 0.0);
+    //bool isOver = any(localPos > 1.0);
+    //if (hasNegative || isOver) {
+    //    return float3(1, 1, 1);
+    //}
+
+    //Double floor?....
+    uint3 probeCoord = floor(uint3(floor(floor(localPos))));
 
     float3 interpWeight = frac(localPos);
+
+    uint3 probeIndices[8] = {
+        uint3(probeCoord),
+        uint3(probeCoord + uint3(1, 0, 0)),
+        uint3(probeCoord + uint3(0, 1, 0)),
+        uint3(probeCoord + uint3(1, 1, 0)),
+        uint3(probeCoord + uint3(0, 0, 1)),
+        uint3(probeCoord + uint3(1, 0, 1)),
+        uint3(probeCoord + uint3(0, 1, 1)),
+        uint3(probeCoord + uint3(1, 1, 1))
+    };
+
+    float4 irradiance[8];
+    float weights[8];
+    float weightSum = 0.0;
+    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+
+    for (int i = 0; i < 8; ++i) 
+    //int i = 6;
+    //int i = 3;
+    {
+        float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
+        uint slice_idx = (uint)floor(probeIndices[i].z);
+        //return float3(irradianceUV, 0);
+
+        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
+        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
+        float normalDotDir = dot(normal, dirToProbe);
+        weights[i] = 1.0;
+        if (normalDotDir <= 0.0) {
+            weights[i] = 0.0;
+            //continue;
+        }
+        //if (length(dirToProbe) <= 0.5) {
+        //    weights[i] = 0;
+        //}
+
+        resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
+    }
+
+    return resultIrradiance.rgb;
+}
+
+float3 gridCoordToPosition(int3 c) {
+    return ProbeSpacing * float3(c) + SceneMinBounds;
+}
+
+int3 BaseGridCoord(float3 X) {
+    return clamp(int3((X - SceneMinBounds) / ProbeSpacing),
+                int3(0, 0, 0), 
+                int3(GridSize) - int3(1, 1, 1));
+}
+
+float3 SampleIrradiance(
+    float3 wsPosition,       
+    float3 normal
+) {
+    float normalBias = 0.25f;
+    float energyPreservation = 0.85f;
+    float depthSharpness = 50.0f;
+
+    const float3 w_o = normalize(ViewerPos.xyz - wsPosition);
+
+
+    float3 localPos = (wsPosition - SceneMinBounds) / ProbeSpacing;
+    uint3 probeCoord = uint3(floor(floor(localPos))); 
 
     uint3 probeIndices[8] = {
         uint3(probeCoord),
@@ -366,109 +488,95 @@ float3 SampleIrradiance(
         uint3(probeCoord + float3(1, 1, 1))
     };
 
-    float4 irradiance[8];
-    float weights[8];
-    float weightSum = 0.0;
-    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+    // uint3 probeIndices[8] = {
+    //     uint3(probeCoord) + (uint3(0, 0 >> 1, 0 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(1, 1 >> 1, 1 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(2, 2 >> 1, 2 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(3, 3 >> 1, 3 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(4, 4 >> 1, 4 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(5, 5 >> 1, 5 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(6, 6 >> 1, 6 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(7, 7 >> 1, 7 >> 2) & uint3(1,1,1))
+    // };
+
+    int3 baseGridCoord = BaseGridCoord(wsPosition);
+    float3 baseProbePos = gridCoordToPosition(baseGridCoord);
+    float4 sumIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+    float sumWeight = 0.0;
+
+    // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
+    float3 alpha = clamp((wsPosition - baseProbePos) / ProbeSpacing, float3(0,0,0), float3(1,1,1));
 
     for (int i = 0; i < 8; ++i) {
+        int3  offset = int3(i, i >> 1, i >> 2) & int3(1,1,1);
+        int3  probeGridCoord = clamp(baseGridCoord + offset, int3(0,0,0), int3(GridSize) - int3(1, 1, 1));
+
+        float3 probePos = gridCoordToPosition(probeGridCoord);
+
+        float3 probeToPoint = wsPosition - probePos + (normal + 3.0 * w_o) * normalBias;
+        float3 dir = normalize(-probeToPoint);
+
+        float3 trilinear = lerp(1.0 - alpha, alpha, offset);
+        float weight = 1.0;
+
+        // Smooth backface test
+        {
+            float3 trueDirectionToProbe = normalize(probePos - wsPosition);
+            weight *= pow(max(0.0001, (dot(trueDirectionToProbe, normal) + 1.0) * 0.5), 2) + 0.2;
+        }
+
+        // Moment visibility test
+        {
+            float2 texCoord = GetUV(-dir, probeIndices[i]);
+            float distToProbe = length(probeToPoint);
+            float2 temp = DepthAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0).rg;
+            float mean = temp.x;
+            float variance = abs(pow(temp.x, 2) - temp.y);
+            float chebyshevWeight = variance / (variance + pow(max(distToProbe - mean, 0.0), 2));
+            chebyshevWeight = max(pow(chebyshevWeight, 3), 0.0);
+            // weight *= (distToProbe <= mean) ? 1.0 : chebyshevWeight;
+        }
+
+        weight = max(0.000001, weight);
 
         float2 irradianceUV = GetUV(normal, probeIndices[i]);
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
+        float4 probeIrradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
 
-        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
-        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
-
-        // Exclude probes behind the fragment.
-        float normalDotDir = dot(normal, dirToProbe);
-        if (normalDotDir <= 0.0) {
-            weights[i] = 0.0;
-            continue;
+        const float crushThreshold = 0.2;
+        if (weight < crushThreshold) {
+            weight *= weight * weight * (1.0 / pow(crushThreshold,2)); 
         }
 
-        float distance = length(probeWorldPos - fragmentWorldPos);
-         // Prevent near-zero distances.
-        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
-        weights[i] = normalDotDir * distanceWeight;
+        weight *= trilinear.x * trilinear.y * trilinear.z;
 
-        float2 depthUV = GetUV(dirToProbe, probeIndices[i]);
-        float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probeIndices[i].z), 0).r;
+        sumIrradiance += weight * probeIrradiance;
 
-        float meanDistanceToOccluder = visibility.x;
-        float chebyshevWeight = 1.0;
-        if (distance > meanDistanceToOccluder) {
-            // In shadow.
-            float variance = abs((visibility.x * visibility.x) - visibility.y);
-            const float distanceDiff = distance - meanDistanceToOccluder;
-            chebyshevWeight = variance / (variance + (distanceDiff * distanceDiff));
-            
-            // Increase contrast in the weight.
-            chebyshevWeight = max((chebyshevWeight * chebyshevWeight * chebyshevWeight), 0.0f);
-        }
-
-        // From Vulkan: Avoid visibility weights ever going all of the way to zero because when
-        // *no* probe has visibility we need some fallback value.
-        chebyshevWeight = max(0.05f, chebyshevWeight);
-        weights[i] *= chebyshevWeight;
-
-        weightSum += weights[i];
-
-        resultIrradiance += weights[i] * irradiance[i];
+        sumWeight += weight;
     }
 
-    if (weightSum > 0.0) {
-        // Normalize irradiance.
-        resultIrradiance /= weightSum;
-    } else {
-        resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
-    }
+    float3 netIrradiance = sumIrradiance.rgb / sumWeight;
+    netIrradiance *= energyPreservation;
 
-    return resultIrradiance.rgb;
+    return 0.5 * PI *netIrradiance;
 }
 
-// Converts a uint representing an RGBA8 color to a float4
-float4 UnpackRGBA8(uint packedColor) {
-    float4 color;
-    color.r = ((packedColor >> 24) & 0xFF); // Extract red and normalize
-    color.g = ((packedColor >> 16) & 0xFF); // Extract green and normalize
-    color.b = ((packedColor >> 8) & 0xFF);  // Extract blue and normalize
-    color.a = (packedColor & 0xFF);         // Extract alpha and normalize
-    return color;
+float calculateBias(float3 normal, float3 lightDir) {
+    float slopeBias = 0.005f; // Tunable slope-scaled bias
+    float constantBias = 0.002f; // Tunable constant bias
+    return constantBias + slopeBias * max(0.0f, 1.0f - dot(normal, lightDir));
 }
 
-// Converts a float4 to a uint representing an RGBA8 color
-uint PackRGBA8(float4 color) {
-    uint packedColor = 0;
-    packedColor |= (uint)(color.r) << 24; // Pack red
-    packedColor |= (uint)(color.g) << 16; // Pack green
-    packedColor |= (uint)(color.b) << 8;  // Pack blue
-    packedColor |= (uint)(color.a);       // Pack alpha
-    return packedColor;
-}
+float CalculateSlopeBias(float3 surfaceNormal, float3 lightDirection,
+    float baseBias, float slopeFactor)
+{
+    // Calculate the angle between the surface normal and light direction
+    float cosAngle = saturate(dot(surfaceNormal, -lightDirection));
 
-void ImageAtomicRGBA8Avg(RWTexture3D<uint> img, uint3 coords, float4 val) {
-    // val.rgb *= 255.0f;                // Optimize following calculations
-    val.xyz *= 255.f; 
-    val.w = 1.f; 
-    uint newVal = PackRGBA8(val);
-    uint prevStoredVal = 0;
-    uint curStoredVal; 
+    // Calculate slope-dependent bias
+    // As the surface becomes more perpendicular to light, increase the bias
+    float slopeBias = max(baseBias, slopeFactor * tan(acos(cosAngle)));
 
-    // Loop as long as destination value gets changed by other threads
-    do {
-        InterlockedCompareExchange(img[coords], prevStoredVal, newVal, curStoredVal);
-        if (curStoredVal == prevStoredVal) // sucessfully stored into image
-            break;
-
-        prevStoredVal = curStoredVal;
-
-        float4 rval = UnpackRGBA8(curStoredVal);
-        rval.xyz *= rval.w;          // Denormalize
-        float4 curValF = rval + val; // Add new value
-        //curValF = float4(1., 0., 0., 0.); 
-        curValF.xyz /= curValF.w;    // Renormalize
-        newVal = PackRGBA8(curValF);
-    } while (true);
+    return slopeBias;
 }
 
 [RootSignature(Renderer_RootSig)]
@@ -483,10 +591,6 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 normal = ComputeNormal(vsOutput);
 
     float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
-    if (UseAtlas) {
-        indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        indirectIrradiance *= occlusion;
-    }
 
     float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
 
@@ -503,12 +607,35 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.alpha = metallicRoughness.y * metallicRoughness.y;
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
-    float3 colorAccum = emissive;
-    colorAccum += diffuse + specular;
-    float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
-    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+    float3 uh = float3(0, 0, 0);
+    if (UseAtlas) {
+        //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        // uh = SampleIrradiance2(vsOutput.worldPos, normal);
+        // uh = sample_irradiance(vsOutput.worldPos, normal, ViewerPos);
+        //uh = TestGI(vsOutput.worldPos, normal);
+        //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
+        //indirectIrradiance *= occlusion;
+        //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(indirectIrradiance, baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
+        //return float4(uh, 1.0);
+    }
 
+
+    float3 colorAccum = emissive;
+    //colorAccum += diffuse + specular;
+    float bias = calculateBias(normal, SunDirection);
+    //float bias = CalculateSlopeBias(normal, normalize(SunDirection),
+    //    0.0f, 0.001f);
+    //bias = 0;
+    float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z + bias);
+    //sunShadow = 1;
+    colorAccum = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+    //colorAccum += 
     // TODO: Shade each light using Forward+ tiles
+    float3 bruv = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+    bruv += uh * baseColor.rgb;
     
     if (voxelPass) {
         // TODO: These are hardcoded values. It's assumed that the viewport size is 
@@ -523,10 +650,22 @@ float4 main(VSOutput vsOutput) : SV_Target0
             return baseColor; // Early exit
         }
 
-        // TODO: using baseColor for debug purposes
-        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
-        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum), 1.0));
-        // SDFGIVoxelAlbedo[voxelCoords] = 0x00FF0000;
+        //TODO:
+        //1. Parallelize ProbeUpdate - done
+        //2. Call ProbeUpdate every 3rd frame
+        //3. Atomics for VoxelAlbedo
+        //4. New DirectLighting Func that literally just multiplies baseColor with dot product and Light color
+        //5. Trilinear blending between probes
+
+        //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum.xyz), 1.0));
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow, 1.0));
+
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = UnpackUIntToFloat4(PackFloat4ToUInt( float4(colorAccum.xyz * Surface.NdotV, 1.0) )  );
+        //float4 bruh = float4(baseColor.xyz * Surface.NdotV, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = bruh;
+
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
 
         // we don't really care about the output. how to write into an empty framebuffer? 
@@ -534,5 +673,10 @@ float4 main(VSOutput vsOutput) : SV_Target0
     }
     
     // return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+    if (UseAtlas) {
+        //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
+        return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
+    }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

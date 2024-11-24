@@ -54,9 +54,6 @@
 // Enable SDF Ray-marching test
 #define RAYMARCH_TEST 0
 
-// Animation 
-#define ANIMATION 0
-
 // Set SDF Texture Resolution
 // WARNING: Have only tested 128 and 512
 #define SDF_TEXTURE_RESOLUTION 512

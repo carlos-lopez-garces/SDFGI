@@ -583,7 +583,7 @@ namespace SDFGI {
         RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
-        RenderProbeAtlasViz(context, camera);
+        // RenderProbeAtlasViz(context, camera);
         // RenderCubemapViz(context, camera);
     }
 }

@@ -141,7 +141,7 @@ namespace Renderer
 
         void Sort();
 
-        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, bool UseSDFGI = false, SDFGI::SDFGIManager* mp_SDFGIManager = nullptr);
+        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, BOOL UseSDFGI = 0, SDFGI::SDFGIManager* mp_SDFGIManager = nullptr);
         void RenderVoxels(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, 
             SDFGIGlobalConstants& SDFGIglobals);
 

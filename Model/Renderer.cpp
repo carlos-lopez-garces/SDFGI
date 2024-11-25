@@ -1087,7 +1087,7 @@ void MeshSorter::RenderMeshes(
     DrawPass pass,
     GraphicsContext& context,
     GlobalConstants& globals,
-    bool UseSDFGI,
+    BOOL UseSDFGI,
     SDFGI::SDFGIManager* mp_SDFGIManager)
 {
 	ASSERT(m_DSV != nullptr);
@@ -1127,11 +1127,16 @@ void MeshSorter::RenderMeshes(
           float AtlasWidth;                       // 4
           float AtlasHeight;                      // 4
 
-          bool UseAtlas;                          // 4
-          float Pad0;                             // 4
-          float Pad1;                             // 4
-          float Pad2;                             // 4
+          BOOL UseAtlas;                          // 4
+          BOOL showDI;                             // 4
+          BOOL showIrradiance;                             // 4
+          BOOL Pad2;                             // 4
       } sdfgiConstants;
+
+    //   __declspec(align(16)) struct SDFGIConstants2 {
+    //       bool showDI;                             // 4
+    //       bool showIrradiance;
+    //   } sdfgiConstants;
 
       context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
       context.SetDescriptorTable(Renderer::kSDFGIDepthAtlasSRV, mp_SDFGIManager->GetDepthAtlasDescriptorHandle());
@@ -1144,8 +1149,13 @@ void MeshSorter::RenderMeshes(
       sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
       sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
       sdfgiConstants.UseAtlas = true;
+      sdfgiConstants.showDI = mp_SDFGIManager->showDI;
+      sdfgiConstants.showIrradiance = mp_SDFGIManager->showIrradiance;
+      sdfgiConstants.Pad2 = false;
       context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
-  }
+
+    //   context.SetDynamicConstantBufferView(Renderer::kSDFGICBV2, sizeof(sdfgiConstants2), &sdfgiConstants2);
+    }
 
 	if (m_BatchType == kShadows)
 	{

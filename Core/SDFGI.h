@@ -77,6 +77,9 @@ namespace SDFGI
     bool irradianceCaptured = false;
     bool cubeMapsRendered = false;
 
+    BOOL showDI = 0;
+    BOOL showIrradiance = 0;
+
     int probeCount;
     SDFGIProbeGrid probeGrid;
 

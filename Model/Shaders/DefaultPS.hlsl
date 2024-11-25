@@ -69,9 +69,9 @@ cbuffer SDFGIConstants : register(b2) {
     float AtlasHeight;
 
     bool UseAtlas;
-    float Pad3;
-    float Pad4;
-    float Pad5;
+    bool showDI;
+    bool showIrradiance;
+    bool Pad5;
 };
 
 cbuffer VoxelConsts : register(b3)
@@ -428,68 +428,135 @@ float3 SampleIrradiance(
 [RootSignature(Renderer_RootSig)]
 float4 main(VSOutput vsOutput) : SV_Target0
 {
-    // Load and modulate textures
-    float4 baseColor = baseColorFactor * baseColorTexture.Sample(baseColorSampler, UVSET(BASECOLOR));
-    float2 metallicRoughness = metallicRoughnessFactor * 
-        metallicRoughnessTexture.Sample(metallicRoughnessSampler, UVSET(METALLICROUGHNESS)).bg;
-    float occlusion = occlusionTexture.Sample(occlusionSampler, UVSET(OCCLUSION));
-    float3 emissive = emissiveFactor * emissiveTexture.Sample(emissiveSampler, UVSET(EMISSIVE));
-    float3 normal = ComputeNormal(vsOutput);
+    if (showIrradiance || showDI) {
+        // Load and modulate textures
+        float4 baseColor = baseColorFactor * baseColorTexture.Sample(baseColorSampler, UVSET(BASECOLOR));
+        float2 metallicRoughness = metallicRoughnessFactor * 
+            metallicRoughnessTexture.Sample(metallicRoughnessSampler, UVSET(METALLICROUGHNESS)).bg;
+        float occlusion = occlusionTexture.Sample(occlusionSampler, UVSET(OCCLUSION));
+        float3 emissive = emissiveFactor * emissiveTexture.Sample(emissiveSampler, UVSET(EMISSIVE));
+        float3 normal = ComputeNormal(vsOutput);
 
-    SurfaceProperties Surface;
-    Surface.N = normal;
-    Surface.V = normalize(ViewerPos - vsOutput.worldPos);
-    Surface.NdotV = saturate(dot(Surface.N, Surface.V));
-    Surface.c_diff = baseColor.rgb * (1 - kDielectricSpecular) * (1 - metallicRoughness.x) * occlusion;
-    Surface.c_spec = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x) * occlusion;
-    Surface.roughness = metallicRoughness.y;
-    Surface.alpha = metallicRoughness.y * metallicRoughness.y;
-    Surface.alphaSqr = Surface.alpha * Surface.alpha;
+        SurfaceProperties Surface;
+        Surface.N = normal;
+        Surface.V = normalize(ViewerPos - vsOutput.worldPos);
+        Surface.NdotV = saturate(dot(Surface.N, Surface.V));
+        Surface.c_diff = baseColor.rgb * (1 - kDielectricSpecular) * (1 - metallicRoughness.x) * occlusion;
+        Surface.c_spec = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x) * occlusion;
+        Surface.roughness = metallicRoughness.y;
+        Surface.alpha = metallicRoughness.y * metallicRoughness.y;
+        Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
-    // Begin accumulating light starting with emissive
-    float3 colorAccum = emissive;
+        // Begin accumulating light starting with emissive
+        float3 colorAccum = emissive;
 
-    if (!UseAtlas) {
-        float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
-        colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+        if (!UseAtlas || showDI) {
+            float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
+            colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
-        uint2 pixelPos = uint2(vsOutput.position.xy);
-        float ssao = texSSAO[pixelPos];
+            uint2 pixelPos = uint2(vsOutput.position.xy);
+            float ssao = texSSAO[pixelPos];
 
-        Surface.c_diff *= ssao;
-        Surface.c_spec *= ssao;
-    }
-
-    // TODO: Shade each light using Forward+ tiles
-    
-    if (voxelPass) {
-        // TODO: These are hardcoded values. It's assumed that the viewport size is 
-        //       512 * 512, and that the 3D texture is 128 * 128 * 128. We could 
-        //       make these CBV's if we want. 
-        float screenResolution = 512.0;
-        float textureResolution = 128.0;
-        float2 uv = vsOutput.position.xy / screenResolution;  // normalized UV coords
-
-        uint3 voxelCoords = GetVoxelCoords(vsOutput.position.xyz, uv, textureResolution, axis);
-
-        if (voxelCoords.x == 0 && voxelCoords.y == 0 && voxelCoords.z == 0)
-        {
-            return baseColor; // Early exit
+            Surface.c_diff *= ssao;
+            Surface.c_spec *= ssao;
         }
 
-        // TODO: using baseColor for debug purposes
-        SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
-        //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
-        SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
+        // TODO: Shade each light using Forward+ tiles
+        
+        if (voxelPass) {
+            // TODO: These are hardcoded values. It's assumed that the viewport size is 
+            //       512 * 512, and that the 3D texture is 128 * 128 * 128. We could 
+            //       make these CBV's if we want. 
+            float screenResolution = 512.0;
+            float textureResolution = 128.0;
+            float2 uv = vsOutput.position.xy / screenResolution;  // normalized UV coords
 
-        // we don't really care about the output. how to write into an empty framebuffer? 
-        return baseColor;
-    }
-    
-    if (UseAtlas) {
-        return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+            uint3 voxelCoords = GetVoxelCoords(vsOutput.position.xyz, uv, textureResolution, axis);
+
+            if (voxelCoords.x == 0 && voxelCoords.y == 0 && voxelCoords.z == 0)
+            {
+                return baseColor; // Early exit
+            }
+
+            // TODO: using baseColor for debug purposes
+            SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
+            //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+            SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
+
+            // we don't really care about the output. how to write into an empty framebuffer? 
+            return baseColor;
+        }
+        
+        if (showIrradiance) {
+            return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+        } else {
+            return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        }
     } else {
-        return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-    }
+        // Load and modulate textures
+        float4 baseColor = baseColorFactor * baseColorTexture.Sample(baseColorSampler, UVSET(BASECOLOR));
+        float2 metallicRoughness = metallicRoughnessFactor * 
+            metallicRoughnessTexture.Sample(metallicRoughnessSampler, UVSET(METALLICROUGHNESS)).bg;
+        float occlusion = occlusionTexture.Sample(occlusionSampler, UVSET(OCCLUSION));
+        float3 emissive = emissiveFactor * emissiveTexture.Sample(emissiveSampler, UVSET(EMISSIVE));
+        float3 normal = ComputeNormal(vsOutput);
 
+        float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
+        if (UseAtlas) {
+            indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+            indirectIrradiance *= occlusion;
+        }
+
+        float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
+
+        float3 diffuse = (1.0 - F) * indirectIrradiance * baseColor.rgb * (1.0 - metallicRoughness.x);
+        float3 specular = F * indirectIrradiance;
+
+        SurfaceProperties Surface;
+        Surface.N = normal;
+        Surface.V = normalize(ViewerPos - vsOutput.worldPos);
+        Surface.NdotV = saturate(dot(Surface.N, Surface.V));
+        Surface.c_diff = diffuse;
+        Surface.c_spec = specular;
+        Surface.roughness = metallicRoughness.y;
+        Surface.alpha = metallicRoughness.y * metallicRoughness.y;
+        Surface.alphaSqr = Surface.alpha * Surface.alpha;
+
+        float3 colorAccum = emissive;
+        colorAccum += diffuse + specular;
+        float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
+        colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+
+        // TODO: Shade each light using Forward+ tiles
+        
+        if (voxelPass) {
+            // TODO: These are hardcoded values. It's assumed that the viewport size is 
+            //       512 * 512, and that the 3D texture is 128 * 128 * 128. We could 
+            //       make these CBV's if we want. 
+            float screenResolution = 512.0;
+            float textureResolution = 128.0;
+            float2 uv = vsOutput.position.xy / screenResolution;  // normalized UV coords
+
+            uint3 voxelCoords = GetVoxelCoords(vsOutput.position.xyz, uv, textureResolution, axis);
+
+            if (voxelCoords.x == 0 && voxelCoords.y == 0 && voxelCoords.z == 0)
+            {
+                return baseColor; // Early exit
+            }
+
+            // TODO: using baseColor for debug purposes
+            SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
+            //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+            SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
+
+            // we don't really care about the output. how to write into an empty framebuffer? 
+            return baseColor;
+        }
+        
+        // if (UseAtlas) {
+        //     return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+        // } else {
+            return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        // }
+    }
 }

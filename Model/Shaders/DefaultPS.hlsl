@@ -350,6 +350,13 @@ float3 SampleIrradiance(
     float3 normal
 ) {
     float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
+
+    bool hasNegative = any(localPos < 0.0);
+    bool isOver = any(localPos > 1.0);
+    if (!showDI && (hasNegative || isOver)) {
+        return float3(1, 1, 1);
+    }
+
     float3 probeCoord = floor(localPos); 
 
     float3 interpWeight = frac(localPos);

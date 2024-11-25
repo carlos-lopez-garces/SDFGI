@@ -321,57 +321,98 @@ float3 TestGI(
     float4 irradiance[8];
     float weights[8];
     float weightSum = 0.0;
-    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
 
-
-    for (int i = 0; i < 1; ++i) {
+    //int i = 3;
+    for (int i = 0; i < 8; i++)
+    {
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
-
-        // Exclude probes behind the fragment.
         float normalDotDir = dot(normal, dirToProbe);
-        //if (normalDotDir <= 0.0) {
-        //    weights[i] = 0.0;
-        //    continue;
-        //}
-        normalDotDir = abs(normalDotDir);
-
-        float distance = length(probeWorldPos - fragmentWorldPos);
-        // Prevent near-zero distances.
-        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
-        weights[i] = normalDotDir * distanceWeight;
-        weightSum += weights[i];
-
-        //float2 encodedDir = octEncode(normal);
         float2 encodedDir = octEncode(normalize(normal));
         float2 uv = (encodedDir * 0.5) + float2(0.5, 0.5);
-        uv = (uv * float2(ProbeAtlasBlockResolution, ProbeAtlasBlockResolution)) / float2(AtlasWidth, AtlasHeight);
-        uv += float2(probeIndices[i].xy) * float2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
-        uint2 atlasCoord = probeIndices[i].xy * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
-        //atlasCoord = uint2(2, 3);
-        float2 texCoord = atlasCoord.xy + uint2(
-            (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
-            (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
-        );
+        {
+            uv *= ProbeAtlasBlockResolution;
+            uv += probeIndices[i] * (ProbeAtlasBlockResolution + GutterSize);
+            uv /= float2(AtlasWidth, AtlasHeight);
+        }
 
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, 0), 0);
 
-        //float2 texCoord = atlasCoord + float2(0.0 * ProbeAtlasBlockResolution, 0.0 * ProbeAtlasBlockResolution);
+        //float normalDotDir = dot(normal, dirToProbe);
+        if (normalDotDir <= 0.0) {
+            weights[i] = 0.0;
+            continue;
+        }
+        float distance = length(probeWorldPos - fragmentWorldPos);
+        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
 
-        texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
-
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ uv, /* int Probe Slice Index */ probeIndices[i].z), 0);
-
-
-#if 0
-
-        //irradiance[i] = float4(uv, 0, 1);
-        //irradiance[i] = float4(1, 0, 0, 1);
-        float2 bruh = (encodedDir * 0.5) + float2(0.5, 0.5);
-        irradiance[i] = float4(bruh, 0, 1);
-#endif
-        resultIrradiance = 1 * irradiance[i];
+        weights[i] = normalDotDir * distanceWeight;
+        weightSum += weights[i];
+        
+        //resultIrradiance = float4(uv, 0, 1);
+        resultIrradiance += weights[i] * irradiance[i];
+    }
+    if (weightSum > 0.0) {
+        // Normalize irradiance.
+        resultIrradiance /= weightSum;
+    }
+    else {
+        resultIrradiance = float4(1.0, 0.0, 1.0, 1.0);
     }
 
+
+
+//    for (int i = 0; i < 1; ++i) {
+//        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
+//        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
+//
+//        // Exclude probes behind the fragment.
+//        float normalDotDir = dot(normal, dirToProbe);
+//        //if (normalDotDir <= 0.0) {
+//        //    weights[i] = 0.0;
+//        //    continue;
+//        //}
+//        normalDotDir = abs(normalDotDir);
+//
+//        float distance = length(probeWorldPos - fragmentWorldPos);
+//        // Prevent near-zero distances.
+//        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
+//        weights[i] = normalDotDir * distanceWeight;
+//        weightSum += weights[i];
+//
+//        //float2 encodedDir = octEncode(normal);
+//        float2 encodedDir = octEncode(normalize(normal));
+//        float2 uv = (encodedDir * 0.5) + float2(0.5, 0.5);
+//        //uv = float2(0.4, 0.7);
+//        //uv = (uv * float2(ProbeAtlasBlockResolution, ProbeAtlasBlockResolution)) / float2(AtlasWidth, AtlasHeight);
+//        //uv += float2(0, 0) * float2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
+//        //uint2 atlasCoord = float2(0, 0) * uint2(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize);
+//        //float2 atlasCoord = float2(0, 0);
+//        //atlasCoord = uint2(2, 3);
+//        //float2 texCoord = atlasCoord.xy + uint2(
+//        //    (encodedDir.x * 0.5 + 0.5) * ProbeAtlasBlockResolution,
+//        //    (encodedDir.y * 0.5 + 0.5) * ProbeAtlasBlockResolution
+//        //);
+//
+//
+//        //float2 texCoord = atlasCoord + float2(0.0 * ProbeAtlasBlockResolution, 0.0 * ProbeAtlasBlockResolution);
+//
+//        //texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
+//
+//        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(/* float2 UV */ uv, /* int Probe Slice Index */ 0), 0);
+//
+//
+//#if 0
+//
+//        //irradiance[i] = float4(uv, 0, 1);
+//        //irradiance[i] = float4(1, 0, 0, 1);
+//        float2 bruh = (encodedDir * 0.5) + float2(0.5, 0.5);
+//        irradiance[i] = float4(bruh, 0, 1);
+//#endif
+//        resultIrradiance += 1 * irradiance[i];
+//    }
+//
 
     //if (weightSum > 0.0) {
     //    // Normalize irradiance.
@@ -528,8 +569,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
             return float4(0, 0, 0, 1);
             //return float4(colorAccum.rgb, baseColor.a);
         }
-        //return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
-        return float4(col.rgb, baseColor.a);
+        return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
+        //return float4(col.rgb, baseColor.a);
         //return float4(col.rgb, baseColor.a);
     } else {
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);

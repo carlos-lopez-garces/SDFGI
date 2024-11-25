@@ -129,6 +129,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
         dispatchThreadID.z
     );
 
+    //probeIndex = 2;
     for (int i = 0; i < ProbeAtlasBlockResolution; i++) {
         for (int j = 0; j < ProbeAtlasBlockResolution; j++) {
             uint3 probeTexCoord = atlasCoordStart_SS + uint3(i, j, 0);
@@ -157,7 +158,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 
             int faceIndex = GetFaceIndex(decodedSphereNormal);
 
-            uint textureIndex = faceIndex;
+            uint textureIndex = 6 * probeIndex + faceIndex;
 
             // TODO: sample SDF for color and depth in direction 'dir'.
 
@@ -194,8 +195,17 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             o *= 0.5;
             col = float4(o.x, o.y, 0, 1);
 #endif
-
+#if 0
+            if (probeIndex == 0) {
+                col = float4(1, 0, 0, 1);
+            }
+            else {
+                col = float4(0, 1, 0, 1);
+            }
+#endif
             IrradianceAtlas[probeTexCoord] = col;
+
+            
         }
     }
 

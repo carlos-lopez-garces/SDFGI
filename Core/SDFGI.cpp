@@ -26,7 +26,7 @@
 using namespace Graphics;
 using namespace DirectX;
 
-//Vector3 customMinBounds = Vector3(0, 200, -200);
+//Vector3 customMinBounds = Vector3(0, 200, -400);
 Vector3 customMinBounds = Vector3(-300, 200, -300);
 namespace SDFGI {
 
@@ -442,7 +442,7 @@ namespace SDFGI {
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 0.0f, 1.0f),
-            Vector3(1.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 0.0f, -1.0f),
             Vector3(0.0f, 1.0f, 0.0f), 
             Vector3(0.0f, 1.0f, 0.0f) 
         };
@@ -556,8 +556,8 @@ namespace SDFGI {
         //RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
-        //RenderProbeAtlasViz(context, camera);
-        RenderCubemapViz(context, camera);
+        RenderProbeAtlasViz(context, camera);
+        //RenderCubemapViz(context, camera);
 
         RenderProbeViz(context, camera);
     }

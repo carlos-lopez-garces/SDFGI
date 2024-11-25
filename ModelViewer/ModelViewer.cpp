@@ -206,9 +206,9 @@ void ModelViewer::Startup( void )
         Sponza::Startup(m_Camera);
 #else
         scaleModel = 100.0f;
-        //m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
-        m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/CubemapTest/CubemapTest.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/2PlaneBall/2PlaneBall.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
@@ -437,8 +437,8 @@ void ModelViewer::NonLegacyRenderSDF(GraphicsContext& gfxContext, bool runOnce) 
     D3D12_RECT voxelScissor{};
 
     {
-        float width = 512.f;
-        float height = 512.f;
+        float width = 1024.f;
+        float height = 1024.f;
         voxelViewport.Width = width;
         voxelViewport.Height = height;
         voxelViewport.MinDepth = 0.0f;
@@ -651,7 +651,7 @@ void ModelViewer::RenderScene( void )
     static bool rayMarchDebug = true;
     if (runOnce) {
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
-        NonLegacyRenderSDF(gfxContext);
+        NonLegacyRenderSDF(gfxContext, true);
         runOnce = false; 
     }
     
@@ -663,7 +663,7 @@ void ModelViewer::RenderScene( void )
     } 
     else {
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
-        NonLegacyRenderSDF(gfxContext);
+        NonLegacyRenderSDF(gfxContext, true);
         NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
     }
 #else

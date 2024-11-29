@@ -84,7 +84,7 @@ void Renderer::Initialize(void)
     SamplerDesc DefaultSamplerDesc;
     DefaultSamplerDesc.MaxAnisotropy = 8;
     //DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+    DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     DefaultSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     DefaultSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     DefaultSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;

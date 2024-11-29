@@ -81,7 +81,7 @@ float3 spherical_fibonacci(uint index, uint sample_count) {
 }
 
 //Returns in [0, 1] UV space
-float2 sampleCube(
+float2 sampleCube(out uint faceIndex,
     float3 v)
 {
     float3 vAbs = abs(v);
@@ -89,16 +89,19 @@ float2 sampleCube(
     float2 uv;
     if (vAbs.z >= vAbs.x && vAbs.z >= vAbs.y)
     {
+        faceIndex = v.z < 0.0 ? 5 : 4;
         ma = 0.5 / vAbs.z;
         uv = float2(v.z < 0.0 ? v.x : -v.x, -v.y);
     }
     else if (vAbs.y >= vAbs.x)
     {
+        faceIndex = v.y < 0.0 ? 3 : 2;
         ma = 0.5 / vAbs.y;
         uv = float2(v.x, v.y < 0.0 ? v.z : -v.z);
     }
     else
     {
+        faceIndex = v.x < 0.0 ? 1 : 0;
         ma = 0.5 / vAbs.x;
         uv = float2(v.x < 0.0 ? -v.z : v.z, -v.y);
     }
@@ -136,7 +139,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             //float4 col = float4((float)i / ProbeAtlasBlockResolution, (float)j / ProbeAtlasBlockResolution, 0, 1);
             //IrradianceAtlas[probeTexCoord] = col;
 
-            float2 o = float2(((float)i + 0.5)/ ProbeAtlasBlockResolution, ((float)j + 0.5) / ProbeAtlasBlockResolution);
+            float2 o = float2(((float)i + 0.5f)/ ProbeAtlasBlockResolution, ((float)j + 0.5f) / ProbeAtlasBlockResolution);
             //o += float2(0.5, 0.5);
             //for (int k = 0; k < 4; k++) {
             //    o += float2()
@@ -150,13 +153,15 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             float4 col = float4((decodedSphereNormal * 0.5) + float3(0.5, 0.5, 0.5), 1.0);
             //float4 col = float4(decodedSphereNormal, 1.0);
             //col = float4(1, 0, 0, 1);
-            float2 uv = sampleCube(decodedSphereNormal);
+            uint faceIndex = 0;
+            float2 uv = sampleCube(faceIndex, decodedSphereNormal);
 
             col = float4(uv, 0, 1);
 
 
 
-            int faceIndex = GetFaceIndex(decodedSphereNormal);
+            //int faceIndex = GetFaceIndex(decodedSphereNormal);
+            
 
             uint textureIndex = 6 * probeIndex + faceIndex;
 
@@ -194,6 +199,9 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             o += float2(1.0, 1.0);
             o *= 0.5;
             col = float4(o.x, o.y, 0, 1);
+#endif
+#if 0
+            col = float4(uv, 0, 1);
 #endif
 #if 0
             if (probeIndex == 0) {

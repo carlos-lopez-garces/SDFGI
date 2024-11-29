@@ -195,7 +195,7 @@ float3 Specular_BRDF(SurfaceProperties Surface, LightProperties Light)
     return ND * GV * F;
 }
 
-float3 ShadeDirectionalLight(SurfaceProperties Surface, float3 L, float3 c_light)
+float3 ShadeDirectionalLight(SurfaceProperties Surface, float3 L, float3 c_light, float3 bounce_light)
 {
     LightProperties Light;
     Light.L = L;
@@ -213,7 +213,7 @@ float3 ShadeDirectionalLight(SurfaceProperties Surface, float3 L, float3 c_light
     float3 specular = Specular_BRDF(Surface, Light);
 
     // Directional light
-    return Light.NdotL * c_light * (diffuse + specular);
+    return (Light.NdotL * c_light + bounce_light) * (diffuse + specular);
 }
 
 // Diffuse irradiance
@@ -298,7 +298,7 @@ float3 TestGI(
     bool hasNegative = any(localPos < 0.0);
     bool isOver = any(localPos > 1.0);
     if (hasNegative || isOver) {
-        return float3(1, 0, 1);
+        return float3(0, 0, 0);
     }
 
     //We are in our test grid now
@@ -319,12 +319,16 @@ float3 TestGI(
     };
 
     float4 irradiance[8];
-    float weights[8];
+    float weights[8] = { 0,0,0,0,0,0,0,0 };
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
 
     //int i = 3;
-    for (int i = 0; i < 8; i++)
+    //for (int i = 0; i < 1; i++)
+    //int i = 1;
+    //for (int i = 0; i < 2; i++)
+    //int i = 0;
+    for (int i = 0; i < 2; i++)
     {
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
@@ -333,16 +337,16 @@ float3 TestGI(
         float2 uv = (encodedDir * 0.5) + float2(0.5, 0.5);
         {
             uv *= ProbeAtlasBlockResolution;
-            uv += probeIndices[i] * (ProbeAtlasBlockResolution + GutterSize);
+            uv += float2(0,0) * (ProbeAtlasBlockResolution + GutterSize);
             uv /= float2(AtlasWidth, AtlasHeight);
         }
 
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, 0), 0);
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, i), 0);
 
         //float normalDotDir = dot(normal, dirToProbe);
         if (normalDotDir <= 0.0) {
             weights[i] = 0.0;
-            continue;
+            //continue;
         }
         float distance = length(probeWorldPos - fragmentWorldPos);
         float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
@@ -356,9 +360,11 @@ float3 TestGI(
     if (weightSum > 0.0) {
         // Normalize irradiance.
         resultIrradiance /= weightSum;
+        resultIrradiance = saturate(resultIrradiance);
+        //resultIrradiance
     }
     else {
-        resultIrradiance = float4(1.0, 0.0, 1.0, 1.0);
+        resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
     }
 
 
@@ -421,6 +427,7 @@ float3 TestGI(
     //else {
     //    resultIrradiance = float4(1.0, 0.0, 0.0, 1.0);
     //}
+    //return float3(0, 0, 0);
 
     return resultIrradiance.rgb;
 
@@ -524,8 +531,13 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
 #if 1
     float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
-    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-
+    float3 bounceLight = float3(0, 0, 0);
+    
+    //if (UseAtlas) {
+    //    bounceLight = TestGI(vsOutput.worldPos, normalize(vsOutput.normal));
+    //}
+    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity, bounceLight);
+    //colorAccum = col;
     uint2 pixelPos = uint2(vsOutput.position.xy);
     float ssao = texSSAO[pixelPos];
 
@@ -559,7 +571,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     return float4(0.5 * (normalize(vsOutput.normal) + float3(1.0, 1.0, 1.0)), 1.0);
 #endif
 
-
+#if 1
     if (UseAtlas) {
         //return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
         float3 col = TestGI(vsOutput.worldPos, normalize(vsOutput.normal));
@@ -569,8 +581,9 @@ float4 main(VSOutput vsOutput) : SV_Target0
             return float4(0, 0, 0, 1);
             //return float4(colorAccum.rgb, baseColor.a);
         }
-        return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
-        //return float4(col.rgb, baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(col), 2.2f), baseColor.a);
+        return float4(col.rgb, baseColor.a);
+        //return float4(col.rgb * 0.4 + colorAccum.rgb, baseColor.a);
         //return float4(col.rgb, baseColor.a);
     } else {
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
@@ -579,4 +592,6 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //return float4(baseColor);
         //return float4(colorAccum, baseColor.a);
     }
+#endif
+    return float4(colorAccum.rgb, baseColor.a);
 }

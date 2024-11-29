@@ -437,29 +437,31 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 emissive = emissiveFactor * emissiveTexture.Sample(emissiveSampler, UVSET(EMISSIVE));
     float3 normal = ComputeNormal(vsOutput);
 
+    float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
+    if (UseAtlas) {
+        indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        indirectIrradiance *= occlusion;
+    }
+
+    float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
+
+    float3 diffuse = (1.0 - F) * indirectIrradiance * baseColor.rgb * (1.0 - metallicRoughness.x);
+    float3 specular = F * indirectIrradiance;
+
     SurfaceProperties Surface;
     Surface.N = normal;
     Surface.V = normalize(ViewerPos - vsOutput.worldPos);
     Surface.NdotV = saturate(dot(Surface.N, Surface.V));
-    Surface.c_diff = baseColor.rgb * (1 - kDielectricSpecular) * (1 - metallicRoughness.x) * occlusion;
-    Surface.c_spec = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x) * occlusion;
+    Surface.c_diff = diffuse;
+    Surface.c_spec = specular;
     Surface.roughness = metallicRoughness.y;
     Surface.alpha = metallicRoughness.y * metallicRoughness.y;
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
-    // Begin accumulating light starting with emissive
     float3 colorAccum = emissive;
-
-    if (!UseAtlas) {
-        float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
-        colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-
-        uint2 pixelPos = uint2(vsOutput.position.xy);
-        float ssao = texSSAO[pixelPos];
-
-        Surface.c_diff *= ssao;
-        Surface.c_spec *= ssao;
-    }
+    colorAccum += diffuse + specular;
+    float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
+    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
     // TODO: Shade each light using Forward+ tiles
     
@@ -485,10 +487,6 @@ float4 main(VSOutput vsOutput) : SV_Target0
         return baseColor;
     }
     
-    if (UseAtlas) {
-        return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
-    } else {
-        return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-    }
-
+    // return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+    return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

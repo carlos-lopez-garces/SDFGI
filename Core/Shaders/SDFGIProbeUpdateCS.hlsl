@@ -228,7 +228,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 #if 0
             IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
 #endif
-#if 1
+#if 0
             if (SampleSDF) {
                 float3 worldHitPos;
                 float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
@@ -245,6 +245,14 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
                 float4 irradianceSample = ProbeCubemapArray.SampleLevel(LinearSampler, float3(coord.xy * 0.5 + 0.5, textureIndex), 0);
                 IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
                 DepthAtlas[probeTexCoord] = 1;
+            }
+#endif
+#if 1
+            if (probeIndex == 1) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
+            }
+            else {
+                IrradianceAtlas[probeTexCoord] = float4(0, 1, 0, 1);
             }
 #endif
         }

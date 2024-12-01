@@ -346,6 +346,54 @@ float2 GetUV(float3 direction, uint3 probeIndex) {
     return texCoord;
 }
 
+float3 TestGI(
+    float3 fragmentWorldPos,
+    float3 normal
+) {
+    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
+    bool hasNegative = any(localPos < 0.0);
+    bool isOver = any(localPos > 1.0);
+    if (hasNegative || isOver) {
+        return float3(0, 0, 0);
+    }
+    float3 probeCoord = floor(localPos);
+
+    float3 interpWeight = frac(localPos);
+
+    uint3 probeIndices[8] = {
+        uint3(probeCoord),
+        uint3(probeCoord + float3(1, 0, 0)),
+        uint3(probeCoord + float3(0, 1, 0)),
+        uint3(probeCoord + float3(1, 1, 0)),
+        uint3(probeCoord + float3(0, 0, 1)),
+        uint3(probeCoord + float3(1, 0, 1)),
+        uint3(probeCoord + float3(0, 1, 1)),
+        uint3(probeCoord + float3(1, 1, 1))
+    };
+
+    float4 irradiance[8];
+    float weights[8];
+    float weightSum = 0.0;
+    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+
+    //for (int i = 0; i < 8; ++i) 
+    int i = 1;
+    {
+
+        float2 irradianceUV = GetUV(normal, probeIndices[i]);
+        //return float3(irradianceUV, 0);
+        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
+
+        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
+        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
+
+
+        resultIrradiance = irradiance[i];
+    }
+
+    return resultIrradiance.rgb;
+}
+
 float3 SampleIrradiance(
     float3 fragmentWorldPos,       
     float3 normal
@@ -440,7 +488,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
     float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
     if (UseAtlas) {
-        indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(indirectIrradiance, baseColor.a);

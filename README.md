@@ -41,6 +41,8 @@ This section details our implementation of SDFGI. In addition, this will serve a
 
 ### 💡 Irradiance Probes
 
+Irradiance probes are a type of cache that can be sampled from during a final graphics pass to produce lighting in indirect areas. As per DDGI, these probes are computed and updated per-frame, so dynamic lighting is possible. These probes cover a volume in the world that covers the entire scene. While each probe is represented as a position in world-space, the irradiance information of each probe is actually stored in a 3D texture known as an Irradiance Atlas. 
+
 #### Probe Placement
 
 #### Irradiance & Depth Atlas
@@ -79,7 +81,7 @@ Side-by-side images with a caption:
   <br>
   <img src="https://github.com/user-attachments/assets/47875c71-d32f-45c6-aa0c-2ca4a2e334ff" height=200px>
   <img src="https://github.com/user-attachments/assets/df87cb5e-ffd1-490d-ba86-0f7535a2db38" height=200px>
-  <p><i>Linear scaling vs Logarithmic scaling. (source: https://www.aortiz.me/2018/12/21/CG.html#clustered-shading)</i></p>
+  <p><i>Linear scaling vs Logarithmic scaling</i></p>
   <br>
 </div>
 
@@ -89,7 +91,7 @@ Single Image with a caption:
   <br>
   <img src="https://github.com/user-attachments/assets/47875c71-d32f-45c6-aa0c-2ca4a2e334ff" height=200px>
   <br>
-  <p><i>Linear scaling vs Logarithmic scaling. (source: https://www.aortiz.me/2018/12/21/CG.html#clustered-shading)</i></p>
+  <p><i>Linear scaling vs Logarithmic scaling</i></p>
 </div>
 
 Code block with syntax highlighting code: 
@@ -108,7 +110,7 @@ Hide/Show drop down menu:
   <br>
   <img src="https://github.com/user-attachments/assets/47875c71-d32f-45c6-aa0c-2ca4a2e334ff" height=200px>
   <br>
-  <p><i>Linear scaling vs Logarithmic scaling. (source: https://www.aortiz.me/2018/12/21/CG.html#clustered-shading)</i></p>
+  <p><i>Linear scaling vs Logarithmic scaling</i></p>
 </div>
 </details>
 

@@ -367,10 +367,15 @@ float3 TestGI(
 
     float3 interpWeight = frac(localPos);
 
-    uint3 probeIndices[3] = {
+    uint3 probeIndices[8] = {
         uint3(probeCoord),
-        uint3(floor(probeCoord) + uint3(1, 0, 0)),
-        uint3(probeCoord + uint3(1, 0, 0))
+        uint3(probeCoord + uint3(1, 0, 0)),
+        uint3(probeCoord + uint3(0, 1, 0)),
+        uint3(probeCoord + uint3(1, 1, 0)),
+        uint3(probeCoord + uint3(0, 0, 1)),
+        uint3(probeCoord + uint3(1, 0, 1)),
+        uint3(probeCoord + uint3(0, 1, 1)),
+        uint3(probeCoord + uint3(1, 1, 1))
     };
 
     float4 irradiance[8];
@@ -378,13 +383,23 @@ float3 TestGI(
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
-    //for (int i = 0; i < 8; ++i) 
-    int i = 1;
+    for (int i = 0; i < 8; ++i) 
+    //int i = 3;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
         uint slice_idx = (uint)floor(probeIndices[i].z);
     //    //return float3(irradianceUV, 0);
-        resultIrradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
+
+        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
+        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
+        float normalDotDir = dot(normal, dirToProbe);
+        weights[i] = 1.0;
+        if (normalDotDir <= 0.0) {
+            weights[i] = 0.0;
+            //continue;
+        }
+
+        resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
     return resultIrradiance.rgb;
@@ -395,7 +410,7 @@ float3 SampleIrradiance(
     float3 normal
 ) {
     float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
-    float3 probeCoord = floor(localPos); 
+    uint3 probeCoord = floor(floor(localPos)); 
 
     float3 interpWeight = frac(localPos);
 

@@ -74,16 +74,39 @@ namespace SDFGI {
     void SDFGIProbeGrid::GenerateProbes() {
         probes.clear();
 
+        //000
+        //001
+        //010
         // TODO: make sure that grid really covers the bounding box.
-        for (uint32_t x = 0; x < probeCount[0]; ++x) {
-            for (uint32_t y = 0; y < probeCount[1]; ++y) {
-                for (uint32_t z = 0; z < probeCount[2]; ++z) {
+        //for (uint32_t x = 0; x < probeCount[0]; ++x) {
+        //    for (uint32_t y = 0; y < probeCount[1]; ++y) {
+        //        for (uint32_t z = 0; z < probeCount[2]; ++z) {
+                    //Vector3 position = sceneBounds.GetMin() + Vector3(
+                    //    x * probeSpacing[0],
+                    //    y * probeSpacing[1],
+                    //    z * probeSpacing[2]
+                    //);
+                    //probes.push_back({position});
+        //        }
+        //    }
+        //}
+
+        //xyz
+        //000
+        //100
+        //010
+        //110
+        
+        //001
+        for (uint32_t z = 0; z < probeCount[2]; z++) {
+            for (uint32_t y = 0; y < probeCount[1]; y++) {
+                for (uint32_t x = 0; x < probeCount[0]; x++) {
                     Vector3 position = sceneBounds.GetMin() + Vector3(
                         x * probeSpacing[0],
                         y * probeSpacing[1],
                         z * probeSpacing[2]
                     );
-                    probes.push_back({position});
+                    probes.push_back({ position });
                 }
             }
         }

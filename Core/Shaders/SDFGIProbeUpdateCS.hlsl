@@ -33,7 +33,7 @@ cbuffer SDFData : register(b1) {
     float sdfResolution;
 };
 
-StructuredBuffer<float4> ProbePositions : register(t0);
+StructuredBuffer<float3> ProbePositions : register(t0);
 Texture2DArray<float4> ProbeCubemapArray : register(t1);
 
 RWTexture2DArray<float4> IrradianceAtlas : register(u0);
@@ -220,7 +220,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             int2 coord = int2(x, y);
 
             //float3 texelDirection = oct_decode(normalized_oct_coord(coord, ProbeAtlasBlockResolution));
-            float2 inputToDecode = float2(((float)x + 0.5f) / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
+            float2 inputToDecode = float2(((float)x + 0.0f) / ProbeAtlasBlockResolution, ((float)y + 0.0f) / ProbeAtlasBlockResolution);
             inputToDecode *= 2;
             inputToDecode -= float2(1.0, 1.0);
 
@@ -238,7 +238,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 #if 0
             IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
 #endif
-#if 0
+#if 1
             if (SampleSDF) {
                 float3 worldHitPos;
                 float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
@@ -257,15 +257,30 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
                 DepthAtlas[probeTexCoord] = 1;
             }
 #endif
-#if 1
-            if (probeIndex == 1) {
+#if 0
+            if (probeIndex == 0) {
                 IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
             }
-            else if (probeIndex == 5) {
+            else if (probeIndex == 1) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 1, 0, 1);
+            }
+            else if (probeIndex == 2) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 0, 1, 1);
+            }
+            else if (probeIndex == 3) {
                 IrradianceAtlas[probeTexCoord] = float4(1, 0, 1, 1);
             }
-            else {
-                IrradianceAtlas[probeTexCoord] = float4(0, 1, 0, 1);
+            else if (probeIndex == 4) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 1, 1, 1);
+            }
+            else if (probeIndex == 5) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 1, 0, 1);
+            }
+            else if (probeIndex == 6) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 1, 1, 1);
+            }
+            else if (probeIndex == 7) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 0, 0, 1);
             }
 #endif
         }

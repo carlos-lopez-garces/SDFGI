@@ -23,7 +23,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
 #define PROBE_IDX_VIZ 1
-#define SCENE_IS_CORNELL_BOX 1
+#define SCENE_IS_CORNELL_BOX 0
 
 using namespace Graphics;
 using namespace DirectX;
@@ -640,7 +640,7 @@ namespace SDFGI {
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
 
-        RenderProbeViz(context, camera);
+        //RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
         RenderProbeAtlasViz(context, camera);

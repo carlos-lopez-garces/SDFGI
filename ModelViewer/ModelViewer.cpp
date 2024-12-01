@@ -40,7 +40,7 @@
 #include "SDFGI.h"
 #include "Settings.h"
 
-#define RENDER_DIRECT_ONLY 1
+#define RENDER_DIRECT_ONLY 0
 // #define LEGACY_RENDERER
 #include <string>
 

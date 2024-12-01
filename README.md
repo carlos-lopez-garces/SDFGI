@@ -1,3 +1,4 @@
+![image](https://github.com/user-attachments/assets/eb7d2ecf-490f-4916-993f-1ea53590ed7e)
 # Signed Distance Field Global Illumination (SDFGI)
 
 ## 🚀 Overview
@@ -69,3 +70,61 @@ Irradiance Probes
 TODO: Any performance experiments, graphs etc.
 
 ## Credits
+
+## Markdown templates (TODO: DELETE ME)
+
+Side-by-side images with a caption:
+
+<div align="center">
+  <br>
+  <img src="https://github.com/user-attachments/assets/47875c71-d32f-45c6-aa0c-2ca4a2e334ff" height=200px>
+  <img src="https://github.com/user-attachments/assets/df87cb5e-ffd1-490d-ba86-0f7535a2db38" height=200px>
+  <p><i>Linear scaling vs Logarithmic scaling. (source: https://www.aortiz.me/2018/12/21/CG.html#clustered-shading)</i></p>
+  <br>
+</div>
+
+Single Image with a caption:
+
+<div align="center">
+  <br>
+  <img src="https://github.com/user-attachments/assets/47875c71-d32f-45c6-aa0c-2ca4a2e334ff" height=200px>
+  <br>
+  <p><i>Linear scaling vs Logarithmic scaling. (source: https://www.aortiz.me/2018/12/21/CG.html#clustered-shading)</i></p>
+</div>
+
+Code block with syntax highlighting code: 
+
+```c++
+int main() {
+  std::cout << "hello there" << std::endl;
+  return 0; 
+}
+```
+
+Hide/Show drop down menu:
+
+<details>
+<div align="center">
+  <br>
+  <img src="https://github.com/user-attachments/assets/47875c71-d32f-45c6-aa0c-2ca4a2e334ff" height=200px>
+  <br>
+  <p><i>Linear scaling vs Logarithmic scaling. (source: https://www.aortiz.me/2018/12/21/CG.html#clustered-shading)</i></p>
+</div>
+</details>
+
+Info blocks: 
+
+> [!NOTE]  
+> Highlights information that users should take into account, even when skimming.
+
+> [!TIP]
+> Optional information to help a user be more successful.
+
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+> [!WARNING]  
+> Critical content demanding immediate user attention due to potential risks.
+
+> [!CAUTION]
+> Negative potential consequences of an action.

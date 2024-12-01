@@ -251,6 +251,9 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             if (probeIndex == 1) {
                 IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
             }
+            else if (probeIndex == 5) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 0, 1, 1);
+            }
             else {
                 IrradianceAtlas[probeTexCoord] = float4(0, 1, 0, 1);
             }

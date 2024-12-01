@@ -503,8 +503,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-        return float4(indirectIrradiance, baseColor.a);
-        //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
+        //return float4(indirectIrradiance, baseColor.a);
+        return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
     }
 
     float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);

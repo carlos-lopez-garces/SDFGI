@@ -350,25 +350,27 @@ float3 TestGI(
     float3 fragmentWorldPos,
     float3 normal
 ) {
-    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
+    float3 localPos = (fragmentWorldPos - SceneMinBounds) / (float)ProbeSpacing;
+    //float3 localPos = (fragmentWorldPos - SceneMinBounds);
+    //localPos.x /= 600.0;
+    //localPos.y /= 600.0;
+    //localPos.z /= 600.0;
+
     bool hasNegative = any(localPos < 0.0);
     bool isOver = any(localPos > 1.0);
     if (hasNegative || isOver) {
-        return float3(0, 0, 0);
+        return float3(1, 1, 1);
     }
-    float3 probeCoord = floor(localPos);
+
+    //Double floor?....
+    uint3 probeCoord = uint3(floor(floor(localPos)));
 
     float3 interpWeight = frac(localPos);
 
-    uint3 probeIndices[8] = {
+    uint3 probeIndices[3] = {
         uint3(probeCoord),
-        uint3(probeCoord + float3(1, 0, 0)),
-        uint3(probeCoord + float3(0, 1, 0)),
-        uint3(probeCoord + float3(1, 1, 0)),
-        uint3(probeCoord + float3(0, 0, 1)),
-        uint3(probeCoord + float3(1, 0, 1)),
-        uint3(probeCoord + float3(0, 1, 1)),
-        uint3(probeCoord + float3(1, 1, 1))
+        uint3(floor(probeCoord) + uint3(1, 0, 0)),
+        uint3(probeCoord + uint3(1, 0, 0))
     };
 
     float4 irradiance[8];
@@ -379,16 +381,10 @@ float3 TestGI(
     //for (int i = 0; i < 8; ++i) 
     int i = 1;
     {
-
-        float2 irradianceUV = GetUV(normal, probeIndices[i]);
-        //return float3(irradianceUV, 0);
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
-
-        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
-        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
-
-
-        resultIrradiance = irradiance[i];
+        float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
+        uint slice_idx = (uint)floor(probeIndices[i].z);
+    //    //return float3(irradianceUV, 0);
+        resultIrradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
     return resultIrradiance.rgb;
@@ -535,10 +531,10 @@ float4 main(VSOutput vsOutput) : SV_Target0
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
         indirectIrradiance = TestGI(vsOutput.worldPos, normal);
-        indirectIrradiance *= occlusion;
+        //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-        //return float4(indirectIrradiance, baseColor.a);
-        return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
+        return float4(indirectIrradiance, baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
     }
 
     float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);

@@ -29,15 +29,17 @@ TODO: Cool Renders & Videos here
 
 ## 📜 Implementation Details
 
-This section details our implementation of SDFGI. In addition, this will serve as a run-down of the seminal paper, [Dynamic Diffuse Global Illumination by Majercik et. al.](https://jcgt.org/published/0008/02/01/)
+This section details our implementation of SDFGI.
 
-### 🏁 SDF Generation & Ray-Marching
+### 🏁 SDF Representation
 
 #### GPU Voxelization
 
 #### 3D Jump Flood Algorithm
 
 #### Ray-Marching the Scene
+
+### 🧊 Cube Map Representation
 
 ### 💡 Irradiance Probes
 
@@ -59,6 +61,7 @@ Voxel & SDF Representation
   GPU Voxelization
   3D Jump Flood Algorithm
   Ray-Marching
+Cube-Map Representation
 Irradiance Probes
   Probe Placement
   Irradiance & Depth Atlas

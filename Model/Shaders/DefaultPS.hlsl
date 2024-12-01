@@ -410,7 +410,7 @@ float3 SampleIrradiance(
     float3 normal
 ) {
     float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
-    uint3 probeCoord = floor(floor(localPos)); 
+    uint3 probeCoord = uint3(floor(floor(localPos))); 
 
     float3 interpWeight = frac(localPos);
 
@@ -499,8 +499,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
     float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
     if (UseAtlas) {
-        //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        indirectIrradiance = TestGI(vsOutput.worldPos, normal);
+        indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         return float4(indirectIrradiance, baseColor.a);

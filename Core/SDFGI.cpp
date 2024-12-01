@@ -23,7 +23,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
 #define PROBE_IDX_VIZ 1
-#define SCENE_IS_CORNELL_BOX 0
+#define SCENE_IS_CORNELL_BOX 1
 
 using namespace Graphics;
 using namespace DirectX;
@@ -48,7 +48,7 @@ namespace SDFGI {
     // TODO: grid has to be a perfect square.
     SDFGIProbeGrid::SDFGIProbeGrid(Math::AxisAlignedBox bbox) : sceneBounds(bbox) {
 #if SCENE_IS_CORNELL_BOX
-        sceneBounds.SetMin(Vector3(-400, 5, -400));
+        sceneBounds.SetMin(Vector3(-400, 20, -400));
 
         float spacing = 800.0f;
 #else

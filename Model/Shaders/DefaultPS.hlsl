@@ -498,13 +498,15 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 normal = ComputeNormal(vsOutput);
 
     float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
+    float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
-        indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(indirectIrradiance, baseColor.a);
-        return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
     }
 
     float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
@@ -526,7 +528,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-
+    colorAccum += uh * 0.2f;
     // TODO: Shade each light using Forward+ tiles
     
     if (voxelPass) {

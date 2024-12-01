@@ -687,6 +687,7 @@ void ModelViewer::RenderScene( void )
 
 void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
 #if UI_ENABLE
+    ImGui::Begin("SDFGI Settings");
     Matrix4 viewMat = m_Camera.GetViewMatrix();
     Float4 r0(viewMat.GetX().GetX(), viewMat.GetX().GetY(), viewMat.GetX().GetZ(), viewMat.GetX().GetW());
     Float4 r1(viewMat.GetY().GetX(), viewMat.GetY().GetY(), viewMat.GetY().GetZ(), viewMat.GetY().GetW());
@@ -694,6 +695,9 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     Float4 r3(viewMat.GetW().GetX(), viewMat.GetW().GetY(), viewMat.GetW().GetZ(), viewMat.GetW().GetW());
     Float4x4 viewMatrix(r0, r1, r2, r3);
     SunDirection.Update(viewMatrix);
+    ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
+    ImGui::End();
+
     ImGui::Render();
     gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer()); 
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), gfxContext.GetCommandList());

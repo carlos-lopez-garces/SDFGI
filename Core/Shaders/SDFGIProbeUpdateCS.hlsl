@@ -19,6 +19,7 @@ cbuffer ProbeData : register(b0) {
     float MaxWorldDepth;
 
     bool SampleSDF;
+    float Hysteresis;
 };
 
 cbuffer SDFData : register(b1) {
@@ -246,7 +247,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
                 probePosition = float3(-400, 20, -400);
 #endif
                 //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(float3(1, 1, 1)), worldHitPos);
-                IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
+                IrradianceAtlas[probeTexCoord] = lerp(weight * irradianceSample, IrradianceAtlas[probeTexCoord], Hysteresis);
                 float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
                 DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
             } else {

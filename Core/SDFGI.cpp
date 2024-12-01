@@ -52,7 +52,8 @@ namespace SDFGI {
 
         float spacing = 800.0f;
 #else
-        float spacing = 100.0f;
+        // 60 is good
+        float spacing = 60.0f;
 #endif
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
@@ -318,7 +319,7 @@ namespace SDFGI {
 
     void SDFGIManager::UpdateProbes(GraphicsContext& context) {
         // Only capture irradiance and depth once.
-        if (irradianceCaptured) return;
+        // if (irradianceCaptured) return;
 
         ComputeContext& computeContext = context.GetComputeContext();
 
@@ -352,6 +353,7 @@ namespace SDFGI {
             float MaxWorldDepth;                        // 4
 
             BOOL SampleSDF;
+            float Hysteresis;
         } probeData;
 
         __declspec(align(16)) struct SDFData {
@@ -377,6 +379,7 @@ namespace SDFGI {
         probeData.GutterSize = gutterSize;
         probeData.MaxWorldDepth = probeGrid.sceneBounds.GetMaxDistance();
         probeData.SampleSDF = !useCubemaps;
+        probeData.Hysteresis = hysteresis;
 
         sdfData.xmin = -2000; 
         sdfData.xmax = 2000;
@@ -640,7 +643,7 @@ namespace SDFGI {
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
 
-        //RenderProbeViz(context, camera);
+        // RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
         RenderProbeAtlasViz(context, camera);

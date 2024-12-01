@@ -71,6 +71,8 @@ namespace SDFGI
   // A lot of "Managers" in the codebase.
   class SDFGIManager {
   public:
+    // GUI-controlled.
+    float hysteresis = 0.95f;
 
     BOOL useCubemaps;
 

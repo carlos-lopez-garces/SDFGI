@@ -40,6 +40,7 @@
 #include "SDFGI.h"
 #include "Settings.h"
 
+#define RENDER_DIRECT_ONLY 0
 // #define LEGACY_RENDERER
 #include <string>
 
@@ -209,12 +210,12 @@ void ModelViewer::Startup( void )
         Sponza::Startup(m_Camera);
 #else
         scaleModel = 100.0f;
-        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
-        // m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+         m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/CubemapTest/CubemapTest.gltf", forceRebuild);
         // m_ModelInst = Renderer::LoadModel(L"Models/2PlaneBall/2PlaneBall.gltf", forceRebuild);
-        // m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
+         //m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
         m_ModelInst.Resize(scaleModel * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;
@@ -239,10 +240,11 @@ void ModelViewer::Startup( void )
         m_CameraController.reset(new OrbitCamera(m_Camera, m_ModelInst.GetBoundingSphere(), Vector3(kYUnitVector)));
 
     // For Sonic scene.
-    // SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(1.0f, 0.0f, 0.0f), true);
+     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(1.0f, 0.0f, 0.0f), true);
     // For Sponza scene.
-    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.3f, 0.95f, 0.1f), true);
-
+    //SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.3f, 0.95f, 0.1f), true);
+    // For Cornell scene
+    //SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #if UI_ENABLE
     InitializeGUI();
 #endif
@@ -593,43 +595,6 @@ void ModelViewer::NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::
 
         {
             ScopedTimer _prof(L"Render Color", gfxContext);
-            //__declspec(align(16)) struct SDFGIConstants {
-            //    Vector3 GridSize;                       // 16
-
-            //    Vector3 ProbeSpacing;                   // 16
-
-            //    Vector3 SceneMinBounds;                 // 16
-
-            //    unsigned int ProbeAtlasBlockResolution; // 4
-            //    unsigned int GutterSize;                // 4
-            //    float AtlasWidth;                       // 4
-            //    float AtlasHeight;                      // 4
-
-            //    bool UseAtlas;                          // 4
-            //    float Pad0;                             // 4
-            //    float Pad1;                             // 4
-            //    float Pad2;                             // 4
-            //} sdfgiConstants;
-            //if (useSDFGI) {
-            //    //gfxContext.SetRootSignature(Renderer::m_RootSig);
-            //    gfxContext.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
-            //    SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
-            //    sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
-            //    sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
-            //    sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
-            //    sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
-            //    sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
-            //    sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
-            //    sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
-            //    sdfgiConstants.UseAtlas = true;
-            //    gfxContext.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
-            //}
-            ////else {
-            ////    gfxContext.SetRootSignature(Renderer::m_RootSig);
-
-            ////    sdfgiConstants.UseAtlas = false;
-            ////    gfxContext.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
-            ////}
 
             gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
@@ -682,7 +647,11 @@ void ModelViewer::RenderScene( void )
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
         NonLegacyRenderSDF(gfxContext, /*runSDFOnce=*/true);
         mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
+#if RENDER_DIRECT_ONLY == 1
+        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
+#else
         NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
+#endif
     }
 
     mp_SDFGIManager->Render(gfxContext, m_Camera);

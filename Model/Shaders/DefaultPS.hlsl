@@ -374,6 +374,7 @@ float3 SampleIrradiance(
     for (int i = 0; i < 8; ++i) {
 
         float2 irradianceUV = GetUV(normal, probeIndices[i]);
+        //return float3(irradianceUV, 0);
         irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
 
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
@@ -441,6 +442,9 @@ float4 main(VSOutput vsOutput) : SV_Target0
     if (UseAtlas) {
         indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
         indirectIrradiance *= occlusion;
+        //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(indirectIrradiance, baseColor.a);
+        return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
     }
 
     float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
@@ -459,7 +463,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
     float3 colorAccum = emissive;
-    colorAccum += diffuse + specular;
+    //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 

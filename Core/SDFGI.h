@@ -89,7 +89,7 @@ namespace SDFGI
 
     DescriptorHeap *externalHeap;
 
-    uint32_t probeAtlasBlockResolution = 16;
+    uint32_t probeAtlasBlockResolution = 128;
     uint32_t gutterSize = 2;
     ColorBuffer irradianceAtlas;
     ColorBuffer &getIrradianceAtlas() { return irradianceAtlas; }

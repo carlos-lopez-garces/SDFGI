@@ -643,7 +643,9 @@ namespace SDFGI {
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
 
-        // RenderProbeViz(context, camera);
+        if (renderProbViz) {
+            RenderProbeViz(context, camera);
+        }
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
         RenderProbeAtlasViz(context, camera);

@@ -73,6 +73,7 @@ namespace SDFGI
   public:
     // GUI-controlled.
     float hysteresis = 0.95f;
+    bool renderProbViz = false;
 
     BOOL useCubemaps;
 

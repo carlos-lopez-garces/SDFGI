@@ -7,7 +7,7 @@
 > * Carlos Lopez Garces
 >   + *LinkedIn/Website/Github* 
 > * Logan Cho
->   + *LinkedIn/Website/Github*
+>   + [Personal Website](https://www.logancho.com/)
 > * Michael Mason
 >   + [Personal Website](https://www.michaelmason.xyz/)
 

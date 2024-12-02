@@ -554,5 +554,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     }
     
     // return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
+    if (UseAtlas) {
+        return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);    
+    }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

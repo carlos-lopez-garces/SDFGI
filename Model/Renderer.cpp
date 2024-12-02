@@ -1142,27 +1142,26 @@ void MeshSorter::RenderMeshes(
         float AtlasHeight;                      // 4
 
         BOOL UseAtlas;                          // 4
-        float Pad0;                             // 4
+        float GIIntensity;                             // 4
         float Pad1;                             // 4
         float Pad2;                             // 4
     } sdfgiConstants;
     sdfgiConstants.UseAtlas = false;
 
-  if (UseSDFGI) {
-
-
-      context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
-      context.SetDescriptorTable(Renderer::kSDFGIDepthAtlasSRV, mp_SDFGIManager->GetDepthAtlasDescriptorHandle());
-      SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
-      sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
-      sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
-      sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
-      sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
-      sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
-      sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
-      sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
-      sdfgiConstants.UseAtlas = true;
-  }
+    if (UseSDFGI) {
+        context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
+        context.SetDescriptorTable(Renderer::kSDFGIDepthAtlasSRV, mp_SDFGIManager->GetDepthAtlasDescriptorHandle());
+        SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
+        sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
+        sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
+        sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
+        sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
+        sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
+        sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
+        sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
+        sdfgiConstants.UseAtlas = true;
+        sdfgiConstants.GIIntensity = mp_SDFGIManager->giIntensity;
+    }
     context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
 
 	if (m_BatchType == kShadows)

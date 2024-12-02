@@ -697,6 +697,7 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     Float4x4 viewMatrix(r0, r1, r2, r3);
     SunDirection.Update(viewMatrix);
     ImGui::SliderFloat("Sun Intensity", &m_SunIntensity, 1, 1.5);
+    ImGui::SliderFloat("GI Intensity", &mp_SDFGIManager->giIntensity, 0, 1);
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
     ImGui::Checkbox("Render Probe Viz", &mp_SDFGIManager->renderProbViz);
     ImGui::End();

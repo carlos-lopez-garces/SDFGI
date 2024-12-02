@@ -69,7 +69,7 @@ cbuffer SDFGIConstants : register(b2) {
     float AtlasHeight;
 
     bool UseAtlas;
-    float Pad3;
+    float GIIntensity;
     float Pad4;
     float Pad5;
 };
@@ -940,7 +940,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity * indirectIrradiance);
     if (UseAtlas) {
         // TODO: Tie to sun intensity.
-        float giIntensity = 0.005f;
+        float giIntensity = GIIntensity;
         if (sunShadow > 0.0f) {
             giIntensity = 1.f;
         }

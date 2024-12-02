@@ -99,6 +99,7 @@ private:
     ShadowCamera m_SunShadowCamera;
 
     SDFGI::SDFGIManager *mp_SDFGIManager;
+    float m_SunIntensity = 2.5/2;
 };
 
 CREATE_APPLICATION( ModelViewer )
@@ -373,7 +374,7 @@ GlobalConstants ModelViewer::UpdateGlobalConstants(const Math::BaseCamera& cam, 
     GlobalConstants globals;
     globals.ViewProjMatrix = cam.GetViewProjMatrix();
     globals.CameraPos = cam.GetPosition();
-    globals.SunIntensity = Vector3(Scalar(g_SunLightIntensity));
+    globals.SunIntensity = Vector3(log(m_SunIntensity), log(m_SunIntensity), log(m_SunIntensity));
 
     // Handle shadow-related global constants
     {
@@ -695,8 +696,9 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     Float4 r3(viewMat.GetW().GetX(), viewMat.GetW().GetY(), viewMat.GetW().GetZ(), viewMat.GetW().GetW());
     Float4x4 viewMatrix(r0, r1, r2, r3);
     SunDirection.Update(viewMatrix);
+    ImGui::SliderFloat("Sun Intensity", &m_SunIntensity, 1, 1.5);
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
-    ImGui::Checkbox("Render probe viz", &mp_SDFGIManager->renderProbViz);
+    ImGui::Checkbox("Render Probe Viz", &mp_SDFGIManager->renderProbViz);
     ImGui::End();
 
     ImGui::Render();

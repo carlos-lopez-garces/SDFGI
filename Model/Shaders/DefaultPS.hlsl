@@ -799,7 +799,9 @@ float3 SampleIrradiance(
         weights[i] = normalDotDir * distanceWeight;
 
         float2 depthUV = GetUV(dirToProbe, probeIndices[i]);
-        float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probeIndices[i].z), 0).r;
+        // visibility.r is world-space distance to the nearest occluder.
+        // visibility.g is the squared distance to the nearest occluder.
+        float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probeIndices[i].z), 0).rg;
 
         float meanDistanceToOccluder = visibility.x;
         float chebyshevWeight = 1.0;
@@ -912,8 +914,10 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.N = normal;
     Surface.V = normalize(ViewerPos - vsOutput.worldPos);
     Surface.NdotV = saturate(dot(Surface.N, Surface.V));
-    Surface.c_diff = diffuse;
-    Surface.c_spec = specular;
+    // Surface.c_diff = diffuse;
+    // Surface.c_spec = specular;
+    Surface.c_diff = baseColor.rgb * (1 - kDielectricSpecular) * (1 - metallicRoughness.x) * occlusion;
+    Surface.c_spec = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x) * occlusion;
     Surface.roughness = metallicRoughness.y;
     Surface.alpha = metallicRoughness.y * metallicRoughness.y;
     Surface.alphaSqr = Surface.alpha * Surface.alpha;

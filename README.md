@@ -5,7 +5,7 @@
 
 > **University of Pennsylvania, CIS 5650: GPU Programming and Architecture, Final Project**
 > * Carlos Lopez Garces
->   + *LinkedIn/Website/Github* 
+>   + [Personal Website](https://carlos-lopez-garces.github.io/) 
 > * Logan Cho
 >   + [Personal Website](https://www.logancho.com/)
 > * Michael Mason
@@ -18,10 +18,11 @@ SDFGI is a variant of Dynamic Diffuse Global Illumination (DDGI) that takes adva
 This is a DirectX12 implementation built on top of a starter project provided my Microsoft, MiniEngine, as part of their [DirectX Samples repo](https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine). 
 
 Features include: 
-* Arbitrary glTF loading
-* Dynamic lighting
-* Arbitrary irradiance probe placement
+* Probe-based, non-RT global illumination effects, such as interreflections (color "bleeding") and ambient lighting
+* Dynamic lighting: shading of the scene changes in response to changes to the direction of the sun directional light
+* Arbitrary irradiance probe grid placement
 * Cube-Map DDGI: A non-dynamic version of DDGI that serves as a reference implementation to compare our final results.
+* Arbitrary glTF loading
 
 ## 🖼️ Gallery
 

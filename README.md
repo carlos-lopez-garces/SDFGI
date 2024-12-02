@@ -28,6 +28,48 @@ Features include:
 
 TODO: Cool Renders & Videos here
 
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/c83af0df-d13b-4e7c-8249-e6bfea015a21">
+  <br>
+  <p><i>Colors of curtains reflected off of the floor.</i></p>
+</div>
+
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/410fcfb3-b4bf-4b00-8156-afd8cc9fdd26">
+  <br>
+  <p><i>Blue from the curtain reflecting off of nearby pillar and floor.</i></p>
+</div>
+
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/b5f5b37e-97d3-4690-bef2-44b3b294ccb3">
+  <br>
+  <p><i>Colors from curtains reflecting off of nearby pillars and floor.</i></p>
+</div>
+
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/51e61097-b515-4e82-9156-63862205b8d5">
+  <br>
+  <p><i>Color reflected off of nearby banners.</i></p>
+</div>
+
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/cf85eee0-3550-4425-9124-a9a4fc814454">
+  <br>
+  <p><i>A wider angle of the scene.</i></p>
+</div>
+
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/8f7d451c-c9df-4f67-8087-b49893c79af5">
+  <br>
+  <p><i>A shot from behind the curtains. Simulated second-bounce GI in regions that aren't directly lit.</i></p>
+</div>
+
 ## 📜 Implementation Details
 
 This section details our implementation of SDFGI, but here is a basic overview: 

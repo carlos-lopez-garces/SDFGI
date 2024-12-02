@@ -52,7 +52,7 @@
 #define ENABLE_DEPTH_PREPASS 0
 
 // Enable SDF Ray-marching test
-#define RAYMARCH_TEST 0
+#define RAYMARCH_TEST 1
 
 // Set SDF Texture Resolution
 // WARNING: Have only tested 128 and 512

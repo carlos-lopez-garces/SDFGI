@@ -135,6 +135,20 @@ The grid of probes is determined and built at load-time and its resolution canno
 
 ##### Octahedral Encoding
 
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/3f8967bc-7ab6-43a0-8be0-c7063a1d2a44">
+  <br>
+  <p><i>Octahedral Encoding of sphere normals to a unit square texture.</i></p>
+</div>
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/a938292d-683c-457b-a535-88549a2df4d3">
+  <br>
+  <p><i>Example of Atlas of 4 probes, each with sphere normals encoded as color to visualize the octahedral encoding pattern.</i></p>
+</div>
+
+
 #### Updating Probes (Probe Update Pass)
 
 Probes are updated every frame to support dynamic lighting: if the lighting conditions change, e.g. the sun directional light changed direction, we want to rebuild the probes to capture the new irradiance levels surrounding them. Updating probes involves recomputing the irradiance and visibility atlas, i.e. for every texel belonging to the probe's 16x16 region in the atlas, we want obtain the canonical direction obtained by decoding the texel's coordinate; this direction is then used to sample the SDF's albedo to obtain a radiance value to write back to the texel; this also involves obtaining the distance to the corresponding hit in world space and write it back to the probe's region in the visibility atlas.

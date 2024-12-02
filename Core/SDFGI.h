@@ -72,7 +72,7 @@ namespace SDFGI
   class SDFGIManager {
   public:
     // GUI-controlled.
-    float hysteresis = 0.1f;
+    float hysteresis = 0.8f;
     float giIntensity = 0.001f;
     float bakedGIIntensity = 0.3f;
     int bakedSunShadow = 0;

@@ -52,7 +52,7 @@ namespace SDFGI {
 
         float spacing = 800.0f;
 #else
-        // 60 is good
+        // Things look rather good for Sponza with 60. Don't change this.
         float spacing = 60.0f;
 #endif
         probeSpacing[0] = spacing;

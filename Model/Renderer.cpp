@@ -1129,25 +1129,27 @@ void MeshSorter::RenderMeshes(
     voxelPassOff.voxelPass = 0; 
     context.SetDynamicConstantBufferView(kSDFGICommonCBV, sizeof(SDFGIGlobalConstants), &voxelPassOff);
 
+    __declspec(align(16)) struct SDFGIConstants {
+        Vector3 GridSize;                       // 16
+
+        Vector3 ProbeSpacing;                   // 16
+
+        Vector3 SceneMinBounds;                 // 16
+
+        unsigned int ProbeAtlasBlockResolution; // 4
+        unsigned int GutterSize;                // 4
+        float AtlasWidth;                       // 4
+        float AtlasHeight;                      // 4
+
+        BOOL UseAtlas;                          // 4
+        float Pad0;                             // 4
+        float Pad1;                             // 4
+        float Pad2;                             // 4
+    } sdfgiConstants;
+    sdfgiConstants.UseAtlas = false;
 
   if (UseSDFGI) {
-      __declspec(align(16)) struct SDFGIConstants {
-          Vector3 GridSize;                       // 16
 
-          Vector3 ProbeSpacing;                   // 16
-
-          Vector3 SceneMinBounds;                 // 16
-
-          unsigned int ProbeAtlasBlockResolution; // 4
-          unsigned int GutterSize;                // 4
-          float AtlasWidth;                       // 4
-          float AtlasHeight;                      // 4
-
-          bool UseAtlas;                          // 4
-          float Pad0;                             // 4
-          float Pad1;                             // 4
-          float Pad2;                             // 4
-      } sdfgiConstants;
 
       context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
       context.SetDescriptorTable(Renderer::kSDFGIDepthAtlasSRV, mp_SDFGIManager->GetDepthAtlasDescriptorHandle());
@@ -1160,8 +1162,8 @@ void MeshSorter::RenderMeshes(
       sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
       sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
       sdfgiConstants.UseAtlas = true;
-      context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
   }
+    context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
 
 	if (m_BatchType == kShadows)
 	{

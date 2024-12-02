@@ -258,6 +258,27 @@ float3 ShadeDirectionalLight(SurfaceProperties Surface, float3 L, float3 c_light
     return Light.NdotL * c_light * (diffuse + specular);
 }
 
+float3 ShadeDirectionalLight2(SurfaceProperties Surface, float3 L, float3 c_light, float4 baseColor)
+{
+    LightProperties Light;
+    Light.L = L;
+
+    // Half vector
+    float3 H = normalize(L + Surface.V);
+
+    // Pre-compute dot products
+    Light.NdotL = saturate(dot(Surface.N, L));
+    Light.LdotH = saturate(dot(L, H));
+    Light.NdotH = saturate(dot(Surface.N, H));
+
+    // Diffuse & specular factors
+    float3 diffuse = Diffuse_Burley(Surface, Light);
+    float3 specular = Specular_BRDF(Surface, Light);
+
+    // Directional light
+    return Light.NdotL * c_light * (diffuse + specular) + baseColor.rgb;
+}
+
 // Diffuse irradiance
 float3 Diffuse_IBL(SurfaceProperties Surface)
 {
@@ -793,9 +814,9 @@ float3 SampleIrradiance(
             continue;
         }
 
-        float distance = length(probeWorldPos - fragmentWorldPos);
+        float distance = max(1, length(probeWorldPos - fragmentWorldPos));
          // Prevent near-zero distances.
-        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
+        float distanceWeight = 1.0 / (pow(distance, 5) + 1.0e-4f);
         weights[i] = normalDotDir * distanceWeight;
 
         float2 depthUV = GetUV(dirToProbe, probeIndices[i]);
@@ -817,7 +838,7 @@ float3 SampleIrradiance(
 
         // From Vulkan: Avoid visibility weights ever going all of the way to zero because when
         // *no* probe has visibility we need some fallback value.
-        chebyshevWeight = max(0.05f, chebyshevWeight);
+        // chebyshevWeight = max(0.05f, chebyshevWeight);
         // weights[i] *= chebyshevWeight;
 
         weightSum += weights[i];
@@ -892,7 +913,6 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 normal = ComputeNormal(vsOutput);
 
     float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
-    float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
         indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
@@ -905,17 +925,10 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
     }
 
-    float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
-
-    float3 diffuse = (1.0 - F) * indirectIrradiance * baseColor.rgb * (1.0 - metallicRoughness.x);
-    float3 specular = F * indirectIrradiance;
-
     SurfaceProperties Surface;
     Surface.N = normal;
     Surface.V = normalize(ViewerPos - vsOutput.worldPos);
     Surface.NdotV = saturate(dot(Surface.N, Surface.V));
-    // Surface.c_diff = diffuse;
-    // Surface.c_spec = specular;
     Surface.c_diff = baseColor.rgb * (1 - kDielectricSpecular) * (1 - metallicRoughness.x) * occlusion;
     Surface.c_spec = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x) * occlusion;
     Surface.roughness = metallicRoughness.y;
@@ -923,10 +936,16 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
     float3 colorAccum = emissive;
-    //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
-    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-    colorAccum += 0.1 * indirectIrradiance * baseColor.rgb;
+    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity * indirectIrradiance);
+    if (UseAtlas) {
+        // TODO: Tie to sun intensity.
+        float giIntensity = 0.005f;
+        if (sunShadow > 0.0f) {
+            giIntensity = 1.f;
+        }
+        colorAccum += giIntensity * indirectIrradiance * baseColor.rgb;
+    } 
 
     // TODO: Shade each light using Forward+ tiles
     
@@ -944,9 +963,15 @@ float4 main(VSOutput vsOutput) : SV_Target0
         }
 
         // TODO: using baseColor for debug purposes
-        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
+        float giIntensity = 0.3f;
+        if (sunShadow > 0.0f) {
+            giIntensity = 0.3f;
+        } else {
+            sunShadow = 0.1;
+        }
+        colorAccum = ShadeDirectionalLight2(Surface, SunDirection, sunShadow * SunIntensity, giIntensity*baseColor);
         ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum), 1.0));
-        // SDFGIVoxelAlbedo[voxelCoords] = 0x00FF0000;
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
 
         // we don't really care about the output. how to write into an empty framebuffer? 

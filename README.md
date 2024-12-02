@@ -38,7 +38,13 @@ This section details our implementation of SDFGI, but here is a basic overview:
   <p><i>Overview of SDFGI.</i></p>
 </div>
 
-### 🏁 SDF Representation (SDF Pass)
+SDFGI starts with a **direct lighting pass** of the scene. Using this direct lighting pass, we build an SDF (**SDF Pass**) that represents the scene in a voxelized form that can be ray-marched. Alternatively, we can do a **Cube Map Pass**, where we build cube maps for each probe. This is used for *Cube-Map DDGI* which was a reference implementation we used during development of SDFGI. 
+
+In the **Probe Update Pass**, each probe casts rays around the scene, and at each hit, stores the irradiance color at that point into an irradiance atlas. To cast rays, we use the scene SDF to perform efficient ray-marching of the scene (and for *Cube Map DDGI*, the probes sample irradiance from its respective cube map). 
+
+In the **Final Pass**, the scene is rendered again, but in this case, each fragment will now sample from the irradiance probes to shade it's final indirect lighting. 
+
+### 🏁 SDF Pass
 
 <div align="center">
   <br>
@@ -60,7 +66,7 @@ This section details our implementation of SDFGI, but here is a basic overview:
   <p><i>Ray Marching the Scene.</i></p>
 </div>
 
-### 🧊 Cube Map Representation (Cube Map Pass)
+### 🧊 Cube Map Pass (Cube Map DDGI)
 
 ### 💡 Irradiance Probes (Probe Update Pass & Final Pass)
 

@@ -39,7 +39,7 @@ Texture2DArray<float4> ProbeCubemapArray : register(t1);
 RWTexture2DArray<float4> IrradianceAtlas : register(u0);
 RWTexture2DArray<float2> DepthAtlas : register(u1);
 
-RWTexture3D<float4> AlbedoTex : register(u2);
+RWTexture3D<uint> AlbedoTex : register(u2);  // RGBA8 packed into 32-bit uint
 RWTexture3D<float> SDFTex : register(u3);
 
 SamplerState LinearSampler : register(s0);
@@ -82,6 +82,16 @@ float3 TextureSpaceToWorldSpace(float3 texCoord) {
     return worldPos;
 }
 
+// Converts a uint representing an RGBA8 color to a float4
+float4 UnpackRGBA8(uint packedColor) {
+    float4 color;
+    color.r = ((packedColor >> 24) & 0xFF) / 255.0; // Extract red and normalize
+    color.g = ((packedColor >> 16) & 0xFF) / 255.0; // Extract green and normalize
+    color.b = ((packedColor >> 8) & 0xFF) / 255.0;  // Extract blue and normalize
+    color.a = (packedColor & 0xFF) / 255.0;         // Extract alpha and normalize
+    return color;
+}
+
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
 
@@ -98,7 +108,7 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
         float dist = SDFTex[hit];
         if (dist == 0.f) {
             worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-            return AlbedoTex[hit];
+            return float4(UnpackRGBA8(AlbedoTex[hit]).xyz, 1.f);
         }
         depth += dist;
     }

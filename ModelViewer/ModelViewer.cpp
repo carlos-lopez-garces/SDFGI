@@ -243,7 +243,7 @@ void ModelViewer::Startup( void )
     // For Sonic scene.
      //SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(1.0f, 0.0f, 0.0f), true);
     // For Sponza scene.
-    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.3f, 0.95f, 0.1f), true);
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.299f, 0.944f, 0.144f), true);
     // For Cornell scene
     //SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #if UI_ENABLE

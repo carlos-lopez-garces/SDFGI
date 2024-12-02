@@ -70,8 +70,8 @@ cbuffer SDFGIConstants : register(b2) {
 
     bool UseAtlas;
     float GIIntensity;
-    float Pad4;
-    float Pad5;
+    float BakedGIIntensity;
+    float BakedSunShadow;
 };
 
 cbuffer VoxelConsts : register(b3)
@@ -963,13 +963,13 @@ float4 main(VSOutput vsOutput) : SV_Target0
         }
 
         // TODO: using baseColor for debug purposes
-        float giIntensity = 0.3f;
+        float bakedGIIntensity = BakedGIIntensity;
         if (sunShadow > 0.0f) {
-            giIntensity = 0.3f;
+            bakedGIIntensity = BakedGIIntensity;
         } else {
-            sunShadow = 0.1;
+            sunShadow = BakedSunShadow;
         }
-        colorAccum = ShadeDirectionalLight2(Surface, SunDirection, sunShadow * SunIntensity, giIntensity*baseColor);
+        colorAccum = ShadeDirectionalLight2(Surface, SunDirection, sunShadow * SunIntensity, bakedGIIntensity*baseColor);
         ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum), 1.0));
         //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);

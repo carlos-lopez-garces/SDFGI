@@ -430,7 +430,7 @@ void ModelViewer::NonLegacyRenderShadowMap(GraphicsContext& gfxContext, const Ma
     m_ModelInst.Render(shadowSorter);
 
     shadowSorter.Sort();
-    shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+    shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, false, mp_SDFGIManager);
 }
 
 // Generates the Voxel and SDF 3D Textures from the scene. If sdfRunOnce
@@ -486,7 +486,7 @@ void ModelViewer::NonLegacyRenderSDF(GraphicsContext& gfxContext, bool sdfRunOnc
 
         {
             ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
-            sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+            sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, false, mp_SDFGIManager);
         }
 
         SSAO::Render(gfxContext, m_Camera);
@@ -545,7 +545,7 @@ void ModelViewer::RayMarcherDebug(GraphicsContext& gfxContext, const Math::Camer
 
     {
         ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
-        sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, UpdateGlobalConstants(cam, false));
+        sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, UpdateGlobalConstants(cam, false), false, mp_SDFGIManager);
     }
 
     gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
@@ -579,7 +579,7 @@ void ModelViewer::NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::
 #if ENABLE_DEPTH_PREPASS == 1
     {
         ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
-        sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+        sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, false, mp_SDFGIManager);
     }
 #endif
 
@@ -607,7 +607,7 @@ void ModelViewer::NonLegacyRenderScene(GraphicsContext& gfxContext, const Math::
 
         Renderer::DrawSkybox(gfxContext, cam, viewport, scissor);
 
-        mainSorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
+        mainSorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals, false, mp_SDFGIManager);
     }
 }
 
@@ -698,6 +698,8 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     SunDirection.Update(viewMatrix);
     ImGui::SliderFloat("Sun Intensity", &m_SunIntensity, 1, 1.5);
     ImGui::SliderFloat("GI Intensity", &mp_SDFGIManager->giIntensity, 0, 1);
+    ImGui::SliderFloat("Baked GI Intensity", &mp_SDFGIManager->bakedGIIntensity, 0, 1);
+    ImGui::SliderFloat("Baked Sun Shadow", &mp_SDFGIManager->bakedSunShadow, 0, 1);
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
     ImGui::Checkbox("Render Probe Viz", &mp_SDFGIManager->renderProbViz);
     ImGui::End();

@@ -1143,10 +1143,12 @@ void MeshSorter::RenderMeshes(
 
         BOOL UseAtlas;                          // 4
         float GIIntensity;                             // 4
-        float Pad1;                             // 4
-        float Pad2;                             // 4
+        float BakedGIIntensity;                             // 4
+        float BakedSunShadow;                             // 4
     } sdfgiConstants;
     sdfgiConstants.UseAtlas = false;
+    sdfgiConstants.BakedGIIntensity = mp_SDFGIManager->bakedGIIntensity;
+    sdfgiConstants.BakedSunShadow = mp_SDFGIManager->bakedSunShadow;
 
     if (UseSDFGI) {
         context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
@@ -1161,6 +1163,8 @@ void MeshSorter::RenderMeshes(
         sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
         sdfgiConstants.UseAtlas = true;
         sdfgiConstants.GIIntensity = mp_SDFGIManager->giIntensity;
+        sdfgiConstants.BakedGIIntensity = mp_SDFGIManager->bakedGIIntensity;
+        sdfgiConstants.BakedSunShadow = mp_SDFGIManager->bakedSunShadow;
     }
     context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
 

@@ -29,9 +29,23 @@ TODO: Cool Renders & Videos here
 
 ## 📜 Implementation Details
 
-This section details our implementation of SDFGI.
+This section details our implementation of SDFGI, but here is a basic overview: 
 
-### 🏁 SDF Representation
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/1cdb5b46-686d-4579-9e24-617e85bfa414">
+  <br>
+  <p><i>Overview of SDFGI.</i></p>
+</div>
+
+### 🏁 SDF Representation (SDF Pass)
+
+<div align="center">
+  <br>
+  <img width="707" alt="image" src="https://github.com/user-attachments/assets/178ad06d-ba91-4075-aaf1-a5cf2da866e1">
+  <br>
+  <p><i>Overview of SDF Pass.</i></p>
+</div>
 
 #### GPU Voxelization
 
@@ -39,9 +53,18 @@ This section details our implementation of SDFGI.
 
 #### Ray-Marching the Scene
 
-### 🧊 Cube Map Representation
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/ae80a5f0-9f5f-4ff4-b0b3-255ee068d615">
+  <br>
+  <p><i>Ray Marching the Scene.</i></p>
+</div>
 
-### 💡 Irradiance Probes
+
+
+### 🧊 Cube Map Representation (Cube Map Pass)
+
+### 💡 Irradiance Probes (Probe Update Pass & Final Pass)
 
 Irradiance probes are a type of cache that can be sampled from during a final graphics pass to produce lighting in indirect areas. As per DDGI, these probes are computed and updated per-frame, so dynamic lighting is possible. These probes cover a volume in the world that covers the entire scene. While each probe is represented as a position in world-space, the irradiance information of each probe is actually stored in a 3D texture known as an Irradiance Atlas. 
 
@@ -51,9 +74,9 @@ Irradiance probes are a type of cache that can be sampled from during a final gr
 
 ##### Octahedral Encoding
 
-#### Updating Probes
+#### Updating Probes (Probe Update Pass)
 
-#### Sampling Probes
+#### Sampling Probes (Probe Final Pass)
 
 ```
 TODO: 

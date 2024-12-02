@@ -469,7 +469,7 @@ float3 SampleIrradiance(
         // From Vulkan: Avoid visibility weights ever going all of the way to zero because when
         // *no* probe has visibility we need some fallback value.
         chebyshevWeight = max(0.05f, chebyshevWeight);
-        weights[i] *= chebyshevWeight;
+        // weights[i] *= chebyshevWeight;
 
         weightSum += weights[i];
 
@@ -546,7 +546,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
@@ -573,7 +573,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-    colorAccum += uh * 0.2f;
+    colorAccum += 0.1 * indirectIrradiance * baseColor.rgb;
+
     // TODO: Shade each light using Forward+ tiles
     
     if (voxelPass) {

@@ -88,6 +88,8 @@ In the **Final Pass**, the scene is rendered again, but in this case, each fragm
 
 ### 🏁 SDF Pass
 
+In the **SDF Pass**, a 3D SDF Texture is created that represents the scene. As an intermediate step, we perform a **GPU Voxelization** pass of the scene. This creates a 3D Voxel Albedo Texture that is used to sample irradiance. Additionally, an intermediate 3D Texture is created that is used as input to a **3D Jump Flood** Pass. Jump Flooding is a GPU flooding algorithm that can be modified to build a Distance Field texture, and thus we use this algorithm to produce the final SDF that can be used for ray-marching. 
+
 <div align="center">
   <br>
   <img width="707" alt="image" src="https://github.com/user-attachments/assets/178ad06d-ba91-4075-aaf1-a5cf2da866e1">
@@ -97,9 +99,15 @@ In the **Final Pass**, the scene is rendered again, but in this case, each fragm
 
 #### GPU Voxelization
 
+The **GPU Voxelizaiton** step voxelizes the scene by taking advantage of the GPU's rasterizer. We can do this by rendering the entire scene from three orthographics views in the x, y and z directions. In the fragment shader, we can use a combination of the x & y screen coordinates and the z-depth buffer to store voxels into a 3D texture. 
+
 #### 3D Jump Flood Algorithm
 
+The **3D Jump Flood Algorithm** step will generate an SDF by running multiple compute passes on an intermediate texture that has an encoded texture coordinate per pixel. After these passes, the final SDF texture is produced. 
+
 #### Ray-Marching the Scene
+
+The final SDF texture can be used to do sphere-marching. From a world space position, we can find the equivalent position in the SDF texture, and begin ray-marching. Since each pixel in the 3D texture represents a distance to the nearest geometry, the ray is marched at the sampled distance until it hits a pixel that has a distance of `0.0f`. Once we have a hit, we can sample the Voxel Albedo Texture at the same texture coordinate. Additionally we can also sample the ray depth. 
 
 <div align="center">
   <br>
@@ -108,9 +116,14 @@ In the **Final Pass**, the scene is rendered again, but in this case, each fragm
   <p><i>Ray Marching the Scene.</i></p>
 </div>
 
-| ![image](https://github.com/user-attachments/assets/97769b88-36b5-4099-b00c-3f4b38147055) | ![image](https://github.com/user-attachments/assets/79c5ebd6-517f-493c-8df5-a6933c738c2c) |
-|:--:|:--:|
-| <i>The scene.</i> | <i>Voxelization of the scene.</i> |
+The scene can finally be raymarched. The resolution of the SDF is variable, but we mainly stick to either a 128x128x128 texture or a 512x512x512 texture. The global illumination is more accurate at higher samples. 
+
+<div align="center">
+  <br>
+  <img width="743" alt="image" src="https://github.com/user-attachments/assets/1dd55144-1b20-4bda-a35a-684e1866f1cd">
+  <br>
+  <p><i>Ray-Marched SDF.</i></p>
+</div>
 
 ### 🧊 Cube Map Pass (Cube Map DDGI)
 

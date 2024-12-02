@@ -398,7 +398,7 @@ namespace SDFGI {
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
 
-        irradianceAtlasSRVHandle = externalHeap->Alloc(1);
+        if (!irradianceCaptured) irradianceAtlasSRVHandle = externalHeap->Alloc(1);
         uint32_t DestCount = 1;
         uint32_t SourceCounts[] = { 1 };
         D3D12_CPU_DESCRIPTOR_HANDLE SourceTextures[] =
@@ -407,7 +407,7 @@ namespace SDFGI {
         };
         g_Device->CopyDescriptors(1, &irradianceAtlasSRVHandle, &DestCount, DestCount, SourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-        depthAtlasSRVHandle = externalHeap->Alloc(1);
+        if (!irradianceCaptured) depthAtlasSRVHandle = externalHeap->Alloc(1);
         D3D12_CPU_DESCRIPTOR_HANDLE DepthSourceTextures[] =
         {
              depthAtlas.GetSRV()

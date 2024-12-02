@@ -14,7 +14,7 @@ cbuffer CameraCB : register(b0) {
     float sdfResolution;
 };
 
-RWTexture3D<float4> AlbedoTex : register(u0);
+RWTexture3D<uint> AlbedoTex : register(u0);
 RWTexture3D<float> SDFTex : register(u1);
 
 struct VSOutput {
@@ -162,6 +162,26 @@ int3 shortestDistanceToSurfaceTexSpace(float3 eye, float3 marchingDirection, out
     return int3(-1, -1, -1);
 }
 
+// Converts a uint representing an RGBA8 color to a float4
+float4 UnpackRGBA8(uint packedColor) {
+    float4 color;
+    color.r = ((packedColor >> 24) & 0xFF) / 255.0; // Extract red and normalize
+    color.g = ((packedColor >> 16) & 0xFF) / 255.0; // Extract green and normalize
+    color.b = ((packedColor >> 8) & 0xFF) / 255.0;  // Extract blue and normalize
+    color.a = (packedColor & 0xFF) / 255.0;         // Extract alpha and normalize
+    return color;
+}
+
+// Converts a float4 to a uint representing an RGBA8 color
+uint PackRGBA8(float4 color) {
+    uint packedColor = 0;
+    packedColor |= (uint)(color.r * 255.0) << 24; // Pack red
+    packedColor |= (uint)(color.g * 255.0) << 16; // Pack green
+    packedColor |= (uint)(color.b * 255.0) << 8;  // Pack blue
+    packedColor |= (uint)(color.a * 255.0);       // Pack alpha
+    return packedColor;
+}
+
 float4 main(VSOutput input) : SV_TARGET{
     // calculate eye and direction using hard-coded values
     // float3 dir = rayDirection(45.0, input.uv);
@@ -179,5 +199,5 @@ float4 main(VSOutput input) : SV_TARGET{
         return float4(0.0, 0.0, 0.0, 0.0);
     }
 
-    return AlbedoTex[hit];
+    return UnpackRGBA8(AlbedoTex[hit]);
 }

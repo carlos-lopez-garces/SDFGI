@@ -83,7 +83,7 @@ cbuffer VoxelConsts : register(b3)
     bool voxelPass; 
 }
 
-RWTexture3D<float4> SDFGIVoxelAlbedo : register(u0);
+RWTexture3D<uint> SDFGIVoxelAlbedo : register(u0);
 RWTexture3D<uint4> SDFGIVoxelVoronoi : register(u1);
 
 uint3 GetVoxelCoords(float3 position, float2 uv, float textureResolution, int axis)
@@ -426,6 +426,51 @@ float3 SampleIrradiance(
     return resultIrradiance.rgb;
 }
 
+// Converts a uint representing an RGBA8 color to a float4
+float4 UnpackRGBA8(uint packedColor) {
+    float4 color;
+    color.r = ((packedColor >> 24) & 0xFF); // Extract red and normalize
+    color.g = ((packedColor >> 16) & 0xFF); // Extract green and normalize
+    color.b = ((packedColor >> 8) & 0xFF);  // Extract blue and normalize
+    color.a = (packedColor & 0xFF);         // Extract alpha and normalize
+    return color;
+}
+
+// Converts a float4 to a uint representing an RGBA8 color
+uint PackRGBA8(float4 color) {
+    uint packedColor = 0;
+    packedColor |= (uint)(color.r) << 24; // Pack red
+    packedColor |= (uint)(color.g) << 16; // Pack green
+    packedColor |= (uint)(color.b) << 8;  // Pack blue
+    packedColor |= (uint)(color.a);       // Pack alpha
+    return packedColor;
+}
+
+void ImageAtomicRGBA8Avg(RWTexture3D<uint> img, uint3 coords, float4 val) {
+    // val.rgb *= 255.0f;                // Optimize following calculations
+    val.xyz *= 255.f; 
+    val.w = 1.f; 
+    uint newVal = PackRGBA8(val);
+    uint prevStoredVal = 0;
+    uint curStoredVal; 
+
+    // Loop as long as destination value gets changed by other threads
+    do {
+        InterlockedCompareExchange(img[coords], prevStoredVal, newVal, curStoredVal);
+        if (curStoredVal == prevStoredVal) // sucessfully stored into image
+            break;
+
+        prevStoredVal = curStoredVal;
+
+        float4 rval = UnpackRGBA8(curStoredVal);
+        rval.xyz *= rval.w;          // Denormalize
+        float4 curValF = rval + val; // Add new value
+        //curValF = float4(1., 0., 0., 0.); 
+        curValF.xyz /= curValF.w;    // Renormalize
+        newVal = PackRGBA8(curValF);
+    } while (true);
+}
+
 [RootSignature(Renderer_RootSig)]
 float4 main(VSOutput vsOutput) : SV_Target0
 {
@@ -459,7 +504,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
     float3 colorAccum = emissive;
-    colorAccum += diffuse + specular;
+    //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
@@ -479,8 +524,9 @@ float4 main(VSOutput vsOutput) : SV_Target0
         }
 
         // TODO: using baseColor for debug purposes
-        SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
-        //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum), 1.0));
+        // SDFGIVoxelAlbedo[voxelCoords] = 0x00FF0000;
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
 
         // we don't really care about the output. how to write into an empty framebuffer? 

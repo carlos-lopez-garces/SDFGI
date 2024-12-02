@@ -74,13 +74,50 @@ Irradiance probes are a type of cache that can be sampled from during a final gr
 
 #### Probe Placement
 
+A rectangular, regularly spaced grid of probes spans the entire bounding box of the scene. Ideally, every room-like region of a scene should have at least one "cage" of probes (i.e. 8 adjacent probes forming a cube); this way, every fragment in the room can receive irradiance from every direction.
+
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/f7cc9bad-3e68-4dff-831c-022680cd5d5b">
+  <br>
+  <p><i>Debug visualization of probe positions.</i></p>
+</div>
+
+The grid of probes is determined and built at load-time and its resolution cannot change dynamically at runtime.
+
 #### Irradiance & Depth Atlas
 
 ##### Octahedral Encoding
 
 #### Updating Probes (Probe Update Pass)
 
+Probes are updated every frame to support dynamic lighting: if the lighting conditions change, e.g. the sun directional light changed direction, we want to rebuild the probes to capture the new irradiance levels surrounding them. Updating probes involves recomputing the irradiance and visibility atlas, i.e. for every texel belonging to the probe's 16x16 region in the atlas, we want obtain the canonical direction obtained by decoding the texel's coordinate; this direction is then used to sample the SDF's albedo to obtain a radiance value to write back to the texel; this also involves obtaining the distance to the corresponding hit in world space and write it back to the probe's region in the visibility atlas.
+
+Since lighting may change drastically from frame to frame, flickering may be observed as a consequence of updating the irradiance probes so fast. To counter that effect, a lagging factor (called "hysteresis") is used to smoothly transition from the previous frame's probes to the new frame's probes. The DDGI paper explains that "hysteresis" is "the phenomenon in which the value of a physical property lags behind changes in the effect causing it".
+
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/d69301d3-db7b-4737-91f1-a797e16e073c">
+  <br>
+  <p><i>How a probe captures irradiance from its surroundings. Source: Godot.</i></p>
+</div>
+
 #### Sampling Probes (Probe Final Pass)
+
+To shade a fragment, we need to combine its color obtained from evaluating the direct lighting model and the diffuse irradiance around the fragment. The diffuse irradiance for a fragment is sampled from the 8 nearest probes (a "probe cage") that completely encloses it. This process of sampling involves:
+
+1. Computing the grid space and world space positions of each of the probes in the cage, as well as the grid space position of the fragment.
+
+2. For each of the 8 probes, compute the texture coordinate of the region in the atlas corresponding to the probe, encode octahedrally the normal vector of the fragment, and use the resulting texture coordinate to sample the irradiance and visibility atlases to obtain a radiance and depth values. A weight for each probe is computed, which takes into account the relative orientations of the fragment and the probes, as well as their distances.
+
+3. Trilinearly interpolate the 8 irradiance samples to obtain a final irradiance sample.
+
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/d877e62a-3d75-4c36-b20d-1947883d7815">
+  <br>
+  <p><i>Interpolating irradiance from probe. Source: Godot.</i></p>
+</div>
 
 ## Performance Analysis
 

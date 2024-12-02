@@ -60,8 +60,6 @@ This section details our implementation of SDFGI, but here is a basic overview:
   <p><i>Ray Marching the Scene.</i></p>
 </div>
 
-
-
 ### 🧊 Cube Map Representation (Cube Map Pass)
 
 ### 💡 Irradiance Probes (Probe Update Pass & Final Pass)
@@ -77,21 +75,6 @@ Irradiance probes are a type of cache that can be sampled from during a final gr
 #### Updating Probes (Probe Update Pass)
 
 #### Sampling Probes (Probe Final Pass)
-
-```
-TODO: 
-Voxel & SDF Representation
-  GPU Voxelization
-  3D Jump Flood Algorithm
-  Ray-Marching
-Cube-Map Representation
-Irradiance Probes
-  Probe Placement
-  Irradiance & Depth Atlas
-    Octahedral Encoding
-  Probe Update
-  Probe Sampling
-```
 
 ## Performance Analysis
 

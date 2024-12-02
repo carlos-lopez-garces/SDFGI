@@ -27,8 +27,6 @@ Features include:
 
 ## 🖼️ Gallery
 
-TODO: Cool Renders & Videos here
-
 <div align="center">
   <br>
   <img width="717" alt="image" src="https://github.com/user-attachments/assets/c83af0df-d13b-4e7c-8249-e6bfea015a21">
@@ -109,6 +107,10 @@ In the **Final Pass**, the scene is rendered again, but in this case, each fragm
   <br>
   <p><i>Ray Marching the Scene.</i></p>
 </div>
+
+| ![image](https://github.com/user-attachments/assets/97769b88-36b5-4099-b00c-3f4b38147055) | ![image](https://github.com/user-attachments/assets/79c5ebd6-517f-493c-8df5-a6933c738c2c) |
+|:--:|:--:|
+| <i>The scene.</i> | <i>Voxelization of the scene.</i> |
 
 ### 🧊 Cube Map Pass (Cube Map DDGI)
 

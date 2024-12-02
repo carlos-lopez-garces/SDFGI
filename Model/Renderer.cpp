@@ -1144,7 +1144,11 @@ void MeshSorter::RenderMeshes(
         BOOL UseAtlas;                          // 4
         float GIIntensity;                             // 4
         float BakedGIIntensity;                             // 4
-        float BakedSunShadow;                             // 4
+        int BakedSunShadow;                             // 4
+
+        int ProbeOffsetX;
+        int ProbeOffsetY;
+        int ProbeOffsetZ;
     } sdfgiConstants;
     sdfgiConstants.UseAtlas = false;
     sdfgiConstants.BakedGIIntensity = mp_SDFGIManager->bakedGIIntensity;
@@ -1165,6 +1169,9 @@ void MeshSorter::RenderMeshes(
         sdfgiConstants.GIIntensity = mp_SDFGIManager->giIntensity;
         sdfgiConstants.BakedGIIntensity = mp_SDFGIManager->bakedGIIntensity;
         sdfgiConstants.BakedSunShadow = mp_SDFGIManager->bakedSunShadow;
+        sdfgiConstants.ProbeOffsetX = mp_SDFGIManager->probeOffsetX;
+        sdfgiConstants.ProbeOffsetY = mp_SDFGIManager->probeOffsetY;
+        sdfgiConstants.ProbeOffsetZ = mp_SDFGIManager->probeOffsetZ;
     }
     context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
 

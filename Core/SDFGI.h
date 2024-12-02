@@ -72,11 +72,14 @@ namespace SDFGI
   class SDFGIManager {
   public:
     // GUI-controlled.
-    float hysteresis = 0.955f;
-    float giIntensity = 0.003f;
+    float hysteresis = 0.1f;
+    float giIntensity = 0.001f;
     float bakedGIIntensity = 0.3f;
-    float bakedSunShadow = 0.1f;
+    int bakedSunShadow = 0;
     bool renderProbViz = false;
+    int probeOffsetX = 0;
+    int probeOffsetY = 0;
+    int probeOffsetZ = 0;
 
     BOOL useCubemaps;
 

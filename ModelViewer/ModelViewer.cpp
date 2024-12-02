@@ -697,9 +697,12 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     Float4x4 viewMatrix(r0, r1, r2, r3);
     SunDirection.Update(viewMatrix);
     ImGui::SliderFloat("Sun Intensity", &m_SunIntensity, 1, 1.5);
-    ImGui::SliderFloat("GI Intensity", &mp_SDFGIManager->giIntensity, 0, 1);
+    ImGui::SliderFloat("GI Intensity", &mp_SDFGIManager->giIntensity, 0, 0.038);
     ImGui::SliderFloat("Baked GI Intensity", &mp_SDFGIManager->bakedGIIntensity, 0, 1);
-    ImGui::SliderFloat("Baked Sun Shadow", &mp_SDFGIManager->bakedSunShadow, 0, 1);
+    // ImGui::SliderInt("Baked Sun Shadow", &mp_SDFGIManager->bakedSunShadow, 0, 100);
+    ImGui::SliderInt("Probe Offset X", &mp_SDFGIManager->probeOffsetX, -100, 100);
+    ImGui::SliderInt("Probe Offset Y", &mp_SDFGIManager->probeOffsetY, -100, 100);
+    ImGui::SliderInt("Probe Offset Z", &mp_SDFGIManager->probeOffsetZ, -100, 100);
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
     ImGui::Checkbox("Render Probe Viz", &mp_SDFGIManager->renderProbViz);
     ImGui::End();

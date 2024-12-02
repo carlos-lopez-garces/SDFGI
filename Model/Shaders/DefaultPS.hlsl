@@ -71,7 +71,11 @@ cbuffer SDFGIConstants : register(b2) {
     bool UseAtlas;
     float GIIntensity;
     float BakedGIIntensity;
-    float BakedSunShadow;
+    int BakedSunShadow;
+
+    int ProbeOffsetX;
+    int ProbeOffsetY;
+    int ProbeOffsetZ;
 };
 
 cbuffer VoxelConsts : register(b3)
@@ -426,352 +430,352 @@ float3 TestGI(
     return resultIrradiance.rgb;
 }
 
-int3 world_to_grid_indices( float3 world_position ) {
-    float3 probe_grid_position = SceneMinBounds;
-    int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
-    return clamp(
-        int3((world_position - probe_grid_position) / ProbeSpacing),
-        int3(0, 0, 0), 
-        probe_counts - int3(1, 1, 1)
-    );
-}
+// int3 world_to_grid_indices( float3 world_position ) {
+//     float3 probe_grid_position = SceneMinBounds;
+//     int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
+//     return clamp(
+//         int3((world_position - probe_grid_position) / ProbeSpacing),
+//         int3(0, 0, 0), 
+//         probe_counts - int3(1, 1, 1)
+//     );
+// }
 
-float3 grid_indices_to_world_no_offsets( int3 grid_indices ) {
-    float3 probe_grid_position = SceneMinBounds;
-    return grid_indices * ProbeSpacing + probe_grid_position;
-}
+// float3 grid_indices_to_world_no_offsets( int3 grid_indices ) {
+//     float3 probe_grid_position = SceneMinBounds;
+//     return grid_indices * ProbeSpacing + probe_grid_position;
+// }
 
-int probe_indices_to_index(in int3 probe_coords) {
-    int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
-    return int(probe_coords.x + probe_coords.y * probe_counts.x + probe_coords.z * probe_counts.x * probe_counts.y);
-}
+// int probe_indices_to_index(in int3 probe_coords) {
+//     int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
+//     return int(probe_coords.x + probe_coords.y * probe_counts.x + probe_coords.z * probe_counts.x * probe_counts.y);
+// }
 
-float3 grid_indices_to_world( int3 grid_indices, int probe_index ) {
-    int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
-    const int probe_counts_xy = probe_counts.x * probe_counts.y;
-    int2 probe_offset_sampling_coordinates = int2(probe_index % probe_counts_xy, probe_index / probe_counts_xy);
-    return grid_indices_to_world_no_offsets( grid_indices );
-}
+// float3 grid_indices_to_world( int3 grid_indices, int probe_index ) {
+//     int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
+//     const int probe_counts_xy = probe_counts.x * probe_counts.y;
+//     int2 probe_offset_sampling_coordinates = int2(probe_index % probe_counts_xy, probe_index / probe_counts_xy);
+//     return grid_indices_to_world_no_offsets( grid_indices );
+// }
 
-float sign_not_zero(in float k) {
-    return (k >= 0.0) ? 1.0 : -1.0;
-}
+// float sign_not_zero(in float k) {
+//     return (k >= 0.0) ? 1.0 : -1.0;
+// }
 
-float2 sign_not_zero2(in float2 v) {
-    return float2(sign_not_zero(v.x), sign_not_zero(v.y));
-}
+// float2 sign_not_zero2(in float2 v) {
+//     return float2(sign_not_zero(v.x), sign_not_zero(v.y));
+// }
 
-// Assumes that v is a unit vector. The result is an octahedral vector on the [-1, +1] square.
-float2 oct_encode(in float3 v) {
-    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
-    float2 result = v.xy * (1.0 / l1norm);
-    if (v.z < 0.0) {
-        result = (1.0 - abs(result.yx)) * sign_not_zero2(result.xy);
-    }
-    return result;
-}
+// // Assumes that v is a unit vector. The result is an octahedral vector on the [-1, +1] square.
+// float2 oct_encode(in float3 v) {
+//     float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
+//     float2 result = v.xy * (1.0 / l1norm);
+//     if (v.z < 0.0) {
+//         result = (1.0 - abs(result.yx)) * sign_not_zero2(result.xy);
+//     }
+//     return result;
+// }
 
-float2 get_probe_uv(float3 direction, int probe_index, int full_texture_width, int full_texture_height, int probe_side_length) {
+// float2 get_probe_uv(float3 direction, int probe_index, int full_texture_width, int full_texture_height, int probe_side_length) {
 
-    // Get octahedral coordinates (-1,1)
-    const float2 octahedral_coordinates = oct_encode(normalize(direction));
-    // // TODO: use probe index for this.
-    const float probe_with_border_side = float(probe_side_length) + 2.0f;
-    const int probes_per_row = (full_texture_width) / int(probe_with_border_side);
-    // // Get probe indices in the atlas
-    int2 probe_indices = int2((probe_index % probes_per_row), 
-                               (probe_index / probes_per_row));
+//     // Get octahedral coordinates (-1,1)
+//     const float2 octahedral_coordinates = oct_encode(normalize(direction));
+//     // // TODO: use probe index for this.
+//     const float probe_with_border_side = float(probe_side_length) + 2.0f;
+//     const int probes_per_row = (full_texture_width) / int(probe_with_border_side);
+//     // // Get probe indices in the atlas
+//     int2 probe_indices = int2((probe_index % probes_per_row), 
+//                                (probe_index / probes_per_row));
     
-    // // Get top left atlas texels
-    float2 atlas_texels = float2( probe_indices.x * probe_with_border_side, probe_indices.y * probe_with_border_side );
-    // // Account for 1 pixel border
-    atlas_texels += float2(1.0f,1.0f);
-    // // Move to center of the probe area
-    atlas_texels += float2(probe_side_length * 0.5f, probe_side_length * 0.5f);
-    // // Use octahedral coordinates (-1,1) to move between internal pixels, no border
-    atlas_texels += octahedral_coordinates * (probe_side_length * 0.5f);
-    // // Calculate final uvs
-    const float2 uv = atlas_texels / float2(float(full_texture_width), float(full_texture_height));
-    return uv;
-}
+//     // // Get top left atlas texels
+//     float2 atlas_texels = float2( probe_indices.x * probe_with_border_side, probe_indices.y * probe_with_border_side );
+//     // // Account for 1 pixel border
+//     atlas_texels += float2(1.0f,1.0f);
+//     // // Move to center of the probe area
+//     atlas_texels += float2(probe_side_length * 0.5f, probe_side_length * 0.5f);
+//     // // Use octahedral coordinates (-1,1) to move between internal pixels, no border
+//     atlas_texels += octahedral_coordinates * (probe_side_length * 0.5f);
+//     // // Calculate final uvs
+//     const float2 uv = atlas_texels / float2(float(full_texture_width), float(full_texture_height));
+//     return uv;
+// }
 
-float3 sample_irradiance( float3 world_position, float3 normal, float3 camera_position ) {
-    float self_shadow_bias = 0.3f;
+// float3 sample_irradiance( float3 world_position, float3 normal, float3 camera_position ) {
+//     float self_shadow_bias = 0.3f;
 
-    const float3 Wo = normalize(camera_position.xyz - world_position);
-    // Bias vector to offset probe sampling based on normal and view vector.
-    const float minimum_distance_between_probes = 1.0f;
-    float3 bias_vector = (normal * 0.2f + Wo * 0.8f) * (0.75f * minimum_distance_between_probes) * self_shadow_bias;
+//     const float3 Wo = normalize(camera_position.xyz - world_position);
+//     // Bias vector to offset probe sampling based on normal and view vector.
+//     const float minimum_distance_between_probes = 1.0f;
+//     float3 bias_vector = (normal * 0.2f + Wo * 0.8f) * (0.75f * minimum_distance_between_probes) * self_shadow_bias;
 
-    float3 biased_world_position = world_position + bias_vector;
+//     float3 biased_world_position = world_position + bias_vector;
 
-    // Sample at world position + probe offset reduces shadow leaking.
-    int3 base_grid_indices = world_to_grid_indices(biased_world_position);
-    float3 base_probe_world_position = grid_indices_to_world_no_offsets( base_grid_indices );
+//     // Sample at world position + probe offset reduces shadow leaking.
+//     int3 base_grid_indices = world_to_grid_indices(biased_world_position);
+//     float3 base_probe_world_position = grid_indices_to_world_no_offsets( base_grid_indices );
 
-    // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
-    float3 alpha = clamp((biased_world_position - base_probe_world_position) , float3(0.0f,0.0f,0.0f), float3(1.0f,1.0f,1.0f));
+//     // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
+//     float3 alpha = clamp((biased_world_position - base_probe_world_position) , float3(0.0f,0.0f,0.0f), float3(1.0f,1.0f,1.0f));
 
-    float3  sum_irradiance = float3(0.0f,0.0f,0.0f);
-    float sum_weight = 0.0f;
+//     float3  sum_irradiance = float3(0.0f,0.0f,0.0f);
+//     float sum_weight = 0.0f;
 
-    int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
+//     int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
 
-    for (int i = 0; i < 8; ++i) {
-        int3  offset = int3(i, i >> 1, i >> 2) & int3(1,1,1);
-        int3  probe_grid_coord = clamp(base_grid_indices + offset, int3(0,0,0), probe_counts - int3(1,1,1));
-        int probe_index = probe_indices_to_index(probe_grid_coord);
+//     for (int i = 0; i < 8; ++i) {
+//         int3  offset = int3(i, i >> 1, i >> 2) & int3(1,1,1);
+//         int3  probe_grid_coord = clamp(base_grid_indices + offset, int3(0,0,0), probe_counts - int3(1,1,1));
+//         int probe_index = probe_indices_to_index(probe_grid_coord);
 
-        float3 probe_pos = grid_indices_to_world(probe_grid_coord, probe_index);
+//         float3 probe_pos = grid_indices_to_world(probe_grid_coord, probe_index);
 
-        float3 trilinear = lerp(1.0 - alpha, alpha, offset);
-        float weight = 1.0;
+//         float3 trilinear = lerp(1.0 - alpha, alpha, offset);
+//         float weight = 1.0;
 
-    //     if ( use_smooth_backface() ) {
-            // Computed without the biasing applied to the "dir" variable. 
-            // This test can cause reflection-map looking errors in the image
-            // (stuff looks shiny) if the transition is poor.
-            float3 direction_to_probe = normalize(probe_pos - world_position);
+//     //     if ( use_smooth_backface() ) {
+//             // Computed without the biasing applied to the "dir" variable. 
+//             // This test can cause reflection-map looking errors in the image
+//             // (stuff looks shiny) if the transition is poor.
+//             float3 direction_to_probe = normalize(probe_pos - world_position);
 
-            // The naive soft backface weight would ignore a probe when
-            // it is behind the surface. That's good for walls. But for small details inside of a
-            // room, the normals on the details might rule out all of the probes that have mutual
-            // visibility to the point. So, we instead use a "wrap shading" test below inspired by
-            // NPR work.
+//             // The naive soft backface weight would ignore a probe when
+//             // it is behind the surface. That's good for walls. But for small details inside of a
+//             // room, the normals on the details might rule out all of the probes that have mutual
+//             // visibility to the point. So, we instead use a "wrap shading" test below inspired by
+//             // NPR work.
 
-            // The small offset at the end reduces the "going to zero" impact
-            // where this is really close to exactly opposite
-            const float dir_dot_n = (dot(direction_to_probe, normal) + 1.0) * 0.5f;
-            weight *= (dir_dot_n * dir_dot_n) + 0.2;
-    //     }
+//             // The small offset at the end reduces the "going to zero" impact
+//             // where this is really close to exactly opposite
+//             const float dir_dot_n = (dot(direction_to_probe, normal) + 1.0) * 0.5f;
+//             weight *= (dir_dot_n * dir_dot_n) + 0.2;
+//     //     }
 
-        // Bias the position at which visibility is computed; this avoids performing a shadow 
-        // test *at* a surface, which is a dangerous location because that is exactly the line
-        // between shadowed and unshadowed. If the normal bias is too small, there will be
-        // light and dark leaks. If it is too large, then samples can pass through thin occluders to
-        // the other side (this can only happen if there are MULTIPLE occluders near each other, a wall surface
-        // won't pass through itself.)
-        float3 probe_to_biased_point_direction = biased_world_position - probe_pos;
-        float distance_to_biased_point = length(probe_to_biased_point_direction);
-        probe_to_biased_point_direction *= 1.0 / distance_to_biased_point;
+//         // Bias the position at which visibility is computed; this avoids performing a shadow 
+//         // test *at* a surface, which is a dangerous location because that is exactly the line
+//         // between shadowed and unshadowed. If the normal bias is too small, there will be
+//         // light and dark leaks. If it is too large, then samples can pass through thin occluders to
+//         // the other side (this can only happen if there are MULTIPLE occluders near each other, a wall surface
+//         // won't pass through itself.)
+//         float3 probe_to_biased_point_direction = biased_world_position - probe_pos;
+//         float distance_to_biased_point = length(probe_to_biased_point_direction);
+//         probe_to_biased_point_direction *= 1.0 / distance_to_biased_point;
 
-    //     // Visibility
-    //     if ( use_visibility() ) {
+//     //     // Visibility
+//     //     if ( use_visibility() ) {
 
-            float2 depthUV = get_probe_uv(probe_to_biased_point_direction, probe_index, AtlasWidth, AtlasHeight, ProbeAtlasBlockResolution );
-            // float2 depthUV = GetUV(probe_to_biased_point_direction, probe_grid_coord);
+//             float2 depthUV = get_probe_uv(probe_to_biased_point_direction, probe_index, AtlasWidth, AtlasHeight, ProbeAtlasBlockResolution );
+//             // float2 depthUV = GetUV(probe_to_biased_point_direction, probe_grid_coord);
 
-    //         vec2 visibility = textureLod(global_textures[nonuniformEXT(grid_visibility_texture_index)], uv, 0).rg;
+//     //         vec2 visibility = textureLod(global_textures[nonuniformEXT(grid_visibility_texture_index)], uv, 0).rg;
 
-            float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probe_grid_coord.z), 0).rg;
+//             float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probe_grid_coord.z), 0).rg;
 
 
-            float mean_distance_to_occluder = visibility.x;
+//             float mean_distance_to_occluder = visibility.x;
 
-            float chebyshev_weight = 1.0;
-            if (distance_to_biased_point > mean_distance_to_occluder) {
-                // In "shadow"
-                float variance = abs((visibility.x * visibility.x) - visibility.y);
-                // http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
-                // Need the max in the denominator because biasing can cause a negative displacement
-                const float distance_diff = distance_to_biased_point - mean_distance_to_occluder;
-                chebyshev_weight = variance / (variance + (distance_diff * distance_diff));
+//             float chebyshev_weight = 1.0;
+//             if (distance_to_biased_point > mean_distance_to_occluder) {
+//                 // In "shadow"
+//                 float variance = abs((visibility.x * visibility.x) - visibility.y);
+//                 // http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
+//                 // Need the max in the denominator because biasing can cause a negative displacement
+//                 const float distance_diff = distance_to_biased_point - mean_distance_to_occluder;
+//                 chebyshev_weight = variance / (variance + (distance_diff * distance_diff));
                 
-                // Increase contrast in the weight
-                chebyshev_weight = max((chebyshev_weight * chebyshev_weight * chebyshev_weight), 0.0f);
-            }
+//                 // Increase contrast in the weight
+//                 chebyshev_weight = max((chebyshev_weight * chebyshev_weight * chebyshev_weight), 0.0f);
+//             }
 
-    //         // Avoid visibility weights ever going all of the way to zero because when *no* probe has
-    //         // visibility we need some fallback value.
-            chebyshev_weight = max(0.05f, chebyshev_weight);
-            weight *= chebyshev_weight;
-    //     }
+//     //         // Avoid visibility weights ever going all of the way to zero because when *no* probe has
+//     //         // visibility we need some fallback value.
+//             chebyshev_weight = max(0.05f, chebyshev_weight);
+//             weight *= chebyshev_weight;
+//     //     }
 
-        // Avoid zero weight
-        weight = max(0.000001, weight);
+//         // Avoid zero weight
+//         weight = max(0.000001, weight);
 
-        // A small amount of light is visible due to logarithmic perception, so
-        // crush tiny weights but keep the curve continuous
-        const float crushThreshold = 0.2f;
-        if (weight < crushThreshold) {
-            weight *= (weight * weight) * (1.f / (crushThreshold * crushThreshold));
-        }
+//         // A small amount of light is visible due to logarithmic perception, so
+//         // crush tiny weights but keep the curve continuous
+//         const float crushThreshold = 0.2f;
+//         if (weight < crushThreshold) {
+//             weight *= (weight * weight) * (1.f / (crushThreshold * crushThreshold));
+//         }
 
-        float2 uv = get_probe_uv(normal, probe_index, AtlasWidth, AtlasHeight, ProbeAtlasBlockResolution );
-        // float2 uv = GetUV(normal, probe_grid_coord);
+//         float2 uv = get_probe_uv(normal, probe_index, AtlasWidth, AtlasHeight, ProbeAtlasBlockResolution );
+//         // float2 uv = GetUV(normal, probe_grid_coord);
 
-    //     vec3 probe_irradiance = textureLod(global_textures[nonuniformEXT(grid_irradiance_output_index)], uv, 0).rgb;
-        float3 probe_irradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, probe_grid_coord.z), 0).rgb;
+//     //     vec3 probe_irradiance = textureLod(global_textures[nonuniformEXT(grid_irradiance_output_index)], uv, 0).rgb;
+//         float3 probe_irradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, probe_grid_coord.z), 0).rgb;
 
-    //     if ( use_perceptual_encoding() ) {
-            // probe_irradiance = pow(probe_irradiance, float3(0.5f * 5.0f,0.5f * 5.0f,0.5f * 5.0f));
-    //     }
+//     //     if ( use_perceptual_encoding() ) {
+//             // probe_irradiance = pow(probe_irradiance, float3(0.5f * 5.0f,0.5f * 5.0f,0.5f * 5.0f));
+//     //     }
 
-        // Trilinear weights
-        weight *= trilinear.x * trilinear.y * trilinear.z + 0.001f;
+//         // Trilinear weights
+//         weight *= trilinear.x * trilinear.y * trilinear.z + 0.001f;
 
-        sum_irradiance += weight * probe_irradiance;
-        sum_weight += weight;
-    }
+//         sum_irradiance += weight * probe_irradiance;
+//         sum_weight += weight;
+//     }
 
-    float3 net_irradiance = sum_irradiance / sum_weight;
+//     float3 net_irradiance = sum_irradiance / sum_weight;
 
-    // if ( use_perceptual_encoding() ) {
-    //     net_irradiance = net_irradiance * net_irradiance;
-    // }
+//     // if ( use_perceptual_encoding() ) {
+//     //     net_irradiance = net_irradiance * net_irradiance;
+//     // }
 
-    float3 irradiance = 0.5f * PI * net_irradiance * 0.95f;
+//     float3 irradiance = 0.5f * PI * net_irradiance * 0.95f;
 
-    return irradiance;
-}
+//     return irradiance;
+// }
 
-float3 SampleIrradiance2(
-    float3 fragmentWorldPos,       
-    float3 normal
-) {
-    float3 world_position = fragmentWorldPos;
-    float self_shadow_bias = 0.3f;
-    const float3 Wo = normalize(ViewerPos.xyz - fragmentWorldPos);
-    // Bias vector to offset probe sampling based on normal and view vector.
-    const float minimum_distance_between_probes = 1.0f;
-    float3 bias_vector = (normal * 0.2f + Wo * 0.8f) * (0.75f * minimum_distance_between_probes) * self_shadow_bias;
-    float3 biased_world_position = fragmentWorldPos + bias_vector;
-    // Sample at world position + probe offset reduces shadow leaking.
-    int3 base_grid_indices = world_to_grid_indices(biased_world_position);
-    float3 base_probe_world_position = grid_indices_to_world_no_offsets( base_grid_indices );
-    // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
-    float3 alpha = clamp((biased_world_position - base_probe_world_position) , float3(0.0f,0.0f,0.0f), float3(1.0f,1.0f,1.0f));
-    float3  sum_irradiance = float3(0.0f,0.0f,0.0f);
-    float sum_weight = 0.0f;
-    int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
+// float3 SampleIrradiance2(
+//     float3 fragmentWorldPos,       
+//     float3 normal
+// ) {
+//     float3 world_position = fragmentWorldPos;
+//     float self_shadow_bias = 0.3f;
+//     const float3 Wo = normalize(ViewerPos.xyz - fragmentWorldPos);
+//     // Bias vector to offset probe sampling based on normal and view vector.
+//     const float minimum_distance_between_probes = 1.0f;
+//     float3 bias_vector = (normal * 0.2f + Wo * 0.8f) * (0.75f * minimum_distance_between_probes) * self_shadow_bias;
+//     float3 biased_world_position = fragmentWorldPos + bias_vector;
+//     // Sample at world position + probe offset reduces shadow leaking.
+//     int3 base_grid_indices = world_to_grid_indices(biased_world_position);
+//     float3 base_probe_world_position = grid_indices_to_world_no_offsets( base_grid_indices );
+//     // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
+//     float3 alpha = clamp((biased_world_position - base_probe_world_position) , float3(0.0f,0.0f,0.0f), float3(1.0f,1.0f,1.0f));
+//     float3  sum_irradiance = float3(0.0f,0.0f,0.0f);
+//     float sum_weight = 0.0f;
+//     int3 probe_counts = int3(GridSize.x, GridSize.y, GridSize.z);
 
-    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
-    uint3 probeCoord = uint3(floor(floor(localPos))); 
+//     float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
+//     uint3 probeCoord = uint3(floor(floor(localPos))); 
 
-    float3 interpWeight = frac(localPos);
+//     float3 interpWeight = frac(localPos);
 
-    uint3 probeIndices[8] = {
-        uint3(probeCoord),
-        uint3(probeCoord + float3(1, 0, 0)),
-        uint3(probeCoord + float3(0, 1, 0)),
-        uint3(probeCoord + float3(1, 1, 0)),
-        uint3(probeCoord + float3(0, 0, 1)),
-        uint3(probeCoord + float3(1, 0, 1)),
-        uint3(probeCoord + float3(0, 1, 1)),
-        uint3(probeCoord + float3(1, 1, 1))
-    };
+//     uint3 probeIndices[8] = {
+//         uint3(probeCoord),
+//         uint3(probeCoord + float3(1, 0, 0)),
+//         uint3(probeCoord + float3(0, 1, 0)),
+//         uint3(probeCoord + float3(1, 1, 0)),
+//         uint3(probeCoord + float3(0, 0, 1)),
+//         uint3(probeCoord + float3(1, 0, 1)),
+//         uint3(probeCoord + float3(0, 1, 1)),
+//         uint3(probeCoord + float3(1, 1, 1))
+//     };
 
-    // float4 irradiance[8];
-    float weights[8];
-    float weightSum = 0.0;
-    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+//     // float4 irradiance[8];
+//     float weights[8];
+//     float weightSum = 0.0;
+//     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
-    for (int i = 0; i < 8; ++i) {
-        int3  offset = int3(i, i >> 1, i >> 2) & int3(1,1,1);
-        int3  probe_grid_coord = clamp(base_grid_indices + offset, int3(0,0,0), probe_counts - int3(1,1,1));
-        int probe_index = probe_indices_to_index(probe_grid_coord);
+//     for (int i = 0; i < 8; ++i) {
+//         int3  offset = int3(i, i >> 1, i >> 2) & int3(1,1,1);
+//         int3  probe_grid_coord = clamp(base_grid_indices + offset, int3(0,0,0), probe_counts - int3(1,1,1));
+//         int probe_index = probe_indices_to_index(probe_grid_coord);
 
-        float3 probe_pos = grid_indices_to_world(probe_grid_coord, probe_index);
+//         float3 probe_pos = grid_indices_to_world(probe_grid_coord, probe_index);
 
-        float3 trilinear = lerp(1.0 - alpha, alpha, offset);
-        float weight = 1.0;
+//         float3 trilinear = lerp(1.0 - alpha, alpha, offset);
+//         float weight = 1.0;
 
-    //     if ( use_smooth_backface() ) {
-            // Computed without the biasing applied to the "dir" variable. 
-            // This test can cause reflection-map looking errors in the image
-            // (stuff looks shiny) if the transition is poor.
-            float3 direction_to_probe = normalize(probe_pos - world_position);
+//     //     if ( use_smooth_backface() ) {
+//             // Computed without the biasing applied to the "dir" variable. 
+//             // This test can cause reflection-map looking errors in the image
+//             // (stuff looks shiny) if the transition is poor.
+//             float3 direction_to_probe = normalize(probe_pos - world_position);
 
-            // The naive soft backface weight would ignore a probe when
-            // it is behind the surface. That's good for walls. But for small details inside of a
-            // room, the normals on the details might rule out all of the probes that have mutual
-            // visibility to the point. So, we instead use a "wrap shading" test below inspired by
-            // NPR work.
+//             // The naive soft backface weight would ignore a probe when
+//             // it is behind the surface. That's good for walls. But for small details inside of a
+//             // room, the normals on the details might rule out all of the probes that have mutual
+//             // visibility to the point. So, we instead use a "wrap shading" test below inspired by
+//             // NPR work.
 
-            // The small offset at the end reduces the "going to zero" impact
-            // where this is really close to exactly opposite
-            const float dir_dot_n = (dot(direction_to_probe, normal) + 1.0) * 0.5f;
-            weight *= (dir_dot_n * dir_dot_n) + 0.2;
-    //     }
+//             // The small offset at the end reduces the "going to zero" impact
+//             // where this is really close to exactly opposite
+//             const float dir_dot_n = (dot(direction_to_probe, normal) + 1.0) * 0.5f;
+//             weight *= (dir_dot_n * dir_dot_n) + 0.2;
+//     //     }
 
-        // Bias the position at which visibility is computed; this avoids performing a shadow 
-        // test *at* a surface, which is a dangerous location because that is exactly the line
-        // between shadowed and unshadowed. If the normal bias is too small, there will be
-        // light and dark leaks. If it is too large, then samples can pass through thin occluders to
-        // the other side (this can only happen if there are MULTIPLE occluders near each other, a wall surface
-        // won't pass through itself.)
-        float3 probe_to_biased_point_direction = biased_world_position - probe_pos;
-        float distance_to_biased_point = length(probe_to_biased_point_direction);
-        probe_to_biased_point_direction *= 1.0 / distance_to_biased_point;
+//         // Bias the position at which visibility is computed; this avoids performing a shadow 
+//         // test *at* a surface, which is a dangerous location because that is exactly the line
+//         // between shadowed and unshadowed. If the normal bias is too small, there will be
+//         // light and dark leaks. If it is too large, then samples can pass through thin occluders to
+//         // the other side (this can only happen if there are MULTIPLE occluders near each other, a wall surface
+//         // won't pass through itself.)
+//         float3 probe_to_biased_point_direction = biased_world_position - probe_pos;
+//         float distance_to_biased_point = length(probe_to_biased_point_direction);
+//         probe_to_biased_point_direction *= 1.0 / distance_to_biased_point;
 
-    //     // Visibility
-    //     if ( use_visibility() ) {
+//     //     // Visibility
+//     //     if ( use_visibility() ) {
 
-            float2 depthUV = GetUV(direction_to_probe, probeIndices[i]);
-            float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probeIndices[i].z), 0).rg;
+//             float2 depthUV = GetUV(direction_to_probe, probeIndices[i]);
+//             float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probeIndices[i].z), 0).rg;
 
-            float mean_distance_to_occluder = visibility.x;
+//             float mean_distance_to_occluder = visibility.x;
 
-            float chebyshev_weight = 1.0;
-            if (distance_to_biased_point > mean_distance_to_occluder) {
-                // In "shadow"
-                float variance = abs((visibility.x * visibility.x) - visibility.y);
-                // http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
-                // Need the max in the denominator because biasing can cause a negative displacement
-                const float distance_diff = distance_to_biased_point - mean_distance_to_occluder;
-                chebyshev_weight = variance / (variance + (distance_diff * distance_diff));
+//             float chebyshev_weight = 1.0;
+//             if (distance_to_biased_point > mean_distance_to_occluder) {
+//                 // In "shadow"
+//                 float variance = abs((visibility.x * visibility.x) - visibility.y);
+//                 // http://www.punkuser.net/vsm/vsm_paper.pdf; equation 5
+//                 // Need the max in the denominator because biasing can cause a negative displacement
+//                 const float distance_diff = distance_to_biased_point - mean_distance_to_occluder;
+//                 chebyshev_weight = variance / (variance + (distance_diff * distance_diff));
                 
-                // Increase contrast in the weight
-                chebyshev_weight = max((chebyshev_weight * chebyshev_weight * chebyshev_weight), 0.0f);
-            }
+//                 // Increase contrast in the weight
+//                 chebyshev_weight = max((chebyshev_weight * chebyshev_weight * chebyshev_weight), 0.0f);
+//             }
 
-    //         // Avoid visibility weights ever going all of the way to zero because when *no* probe has
-    //         // visibility we need some fallback value.
-            chebyshev_weight = max(0.05f, chebyshev_weight);
-            weight *= chebyshev_weight;
-    //     }
+//     //         // Avoid visibility weights ever going all of the way to zero because when *no* probe has
+//     //         // visibility we need some fallback value.
+//             chebyshev_weight = max(0.05f, chebyshev_weight);
+//             weight *= chebyshev_weight;
+//     //     }
 
-        // Avoid zero weight
-        weight = max(0.000001, weight);
+//         // Avoid zero weight
+//         weight = max(0.000001, weight);
 
-        // A small amount of light is visible due to logarithmic perception, so
-        // crush tiny weights but keep the curve continuous
-        const float crushThreshold = 0.2f;
-        if (weight < crushThreshold) {
-            weight *= (weight * weight) * (1.f / (crushThreshold * crushThreshold));
-        }
+//         // A small amount of light is visible due to logarithmic perception, so
+//         // crush tiny weights but keep the curve continuous
+//         const float crushThreshold = 0.2f;
+//         if (weight < crushThreshold) {
+//             weight *= (weight * weight) * (1.f / (crushThreshold * crushThreshold));
+//         }
 
-        // float2 uv = get_probe_uv(normal, probe_index, AtlasWidth, AtlasHeight, ProbeAtlasBlockResolution );
-        // float2 uv = GetUV(normal, probe_grid_coord);
+//         // float2 uv = get_probe_uv(normal, probe_index, AtlasWidth, AtlasHeight, ProbeAtlasBlockResolution );
+//         // float2 uv = GetUV(normal, probe_grid_coord);
 
-    //     vec3 probe_irradiance = textureLod(global_textures[nonuniformEXT(grid_irradiance_output_index)], uv, 0).rgb;
-        // float3 probe_irradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, probe_grid_coord.z), 0).rgb;
+//     //     vec3 probe_irradiance = textureLod(global_textures[nonuniformEXT(grid_irradiance_output_index)], uv, 0).rgb;
+//         // float3 probe_irradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, probe_grid_coord.z), 0).rgb;
 
-        float2 uv = GetUV(normal, probeIndices[i]);
-        //return float3(irradianceUV, 0);
-        float3 probe_irradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, probeIndices[i].z), 0).rgb;
+//         float2 uv = GetUV(normal, probeIndices[i]);
+//         //return float3(irradianceUV, 0);
+//         float3 probe_irradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(uv, probeIndices[i].z), 0).rgb;
 
-    //     if ( use_perceptual_encoding() ) {
-            // probe_irradiance = pow(probe_irradiance, float3(0.5f * 5.0f,0.5f * 5.0f,0.5f * 5.0f));
-    //     }
+//     //     if ( use_perceptual_encoding() ) {
+//             // probe_irradiance = pow(probe_irradiance, float3(0.5f * 5.0f,0.5f * 5.0f,0.5f * 5.0f));
+//     //     }
 
-        // Trilinear weights
-        weight *= trilinear.x * trilinear.y * trilinear.z + 0.001f;
+//         // Trilinear weights
+//         weight *= trilinear.x * trilinear.y * trilinear.z + 0.001f;
 
-        sum_irradiance += weight * probe_irradiance;
-        sum_weight += weight;
-    }
+//         sum_irradiance += weight * probe_irradiance;
+//         sum_weight += weight;
+//     }
 
-    float3 net_irradiance = sum_irradiance / sum_weight;
+//     float3 net_irradiance = sum_irradiance / sum_weight;
 
-    // if ( use_perceptual_encoding() ) {
-    //     net_irradiance = net_irradiance * net_irradiance;
-    // }
+//     // if ( use_perceptual_encoding() ) {
+//     //     net_irradiance = net_irradiance * net_irradiance;
+//     // }
 
-    float3 irradiance = 0.5f * PI * net_irradiance * 0.95f;
+//     float3 irradiance = 0.5f * PI * net_irradiance * 0.95f;
 
-    return irradiance;
-}
+//     return irradiance;
+// }
 
 float3 SampleIrradiance(
     float3 fragmentWorldPos,       
@@ -782,15 +786,19 @@ float3 SampleIrradiance(
 
     float3 interpWeight = frac(localPos);
 
+    int xOff = ProbeOffsetX;
+    int yOff = ProbeOffsetY;
+    int zOff = ProbeOffsetZ;
+
     uint3 probeIndices[8] = {
-        uint3(probeCoord),
-        uint3(probeCoord + float3(1, 0, 0)),
-        uint3(probeCoord + float3(0, 1, 0)),
-        uint3(probeCoord + float3(1, 1, 0)),
-        uint3(probeCoord + float3(0, 0, 1)),
-        uint3(probeCoord + float3(1, 0, 1)),
-        uint3(probeCoord + float3(0, 1, 1)),
-        uint3(probeCoord + float3(1, 1, 1))
+        uint3(probeCoord + uint3(1+xOff, 0+yOff, 0+zOff)),
+        uint3(probeCoord + uint3(1+xOff, 0+yOff, 0+zOff)),
+        uint3(probeCoord + uint3(0+xOff, 1+yOff, 0+zOff)),
+        uint3(probeCoord + uint3(1+xOff, 1+yOff, 0+zOff)),
+        uint3(probeCoord + uint3(0+xOff, 0+yOff, 1+zOff)),
+        uint3(probeCoord + uint3(1+xOff, 0+yOff, 1+zOff)),
+        uint3(probeCoord + uint3(0+xOff, 1+yOff, 1+zOff)),
+        uint3(probeCoord + uint3(1+xOff, 1+yOff, 1+zOff))
     };
 
     float4 irradiance[8];
@@ -939,12 +947,11 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity * indirectIrradiance);
     if (UseAtlas) {
-        // TODO: Tie to sun intensity.
-        float giIntensity = GIIntensity;
         if (sunShadow > 0.0f) {
-            giIntensity = 1.f;
+            colorAccum += indirectIrradiance * baseColor.rgb;
+        } else {
+            colorAccum += GIIntensity * baseColor.rgb;
         }
-        colorAccum += giIntensity * indirectIrradiance * baseColor.rgb;
     } 
 
     // TODO: Shade each light using Forward+ tiles
@@ -963,11 +970,11 @@ float4 main(VSOutput vsOutput) : SV_Target0
         }
 
         // TODO: using baseColor for debug purposes
-        float bakedGIIntensity = BakedGIIntensity;
+        float bakedGIIntensity = 0.3f;
         if (sunShadow > 0.0f) {
-            bakedGIIntensity = BakedGIIntensity;
+            bakedGIIntensity = 0.3f;
         } else {
-            sunShadow = BakedSunShadow;
+            sunShadow = 0.1f;
         }
         colorAccum = ShadeDirectionalLight2(Surface, SunDirection, sunShadow * SunIntensity, bakedGIIntensity*baseColor);
         ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum), 1.0));

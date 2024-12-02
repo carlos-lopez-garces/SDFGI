@@ -172,16 +172,6 @@ float4 UnpackRGBA8(uint packedColor) {
     return color;
 }
 
-// Converts a float4 to a uint representing an RGBA8 color
-uint PackRGBA8(float4 color) {
-    uint packedColor = 0;
-    packedColor |= (uint)(color.r * 255.0) << 24; // Pack red
-    packedColor |= (uint)(color.g * 255.0) << 16; // Pack green
-    packedColor |= (uint)(color.b * 255.0) << 8;  // Pack blue
-    packedColor |= (uint)(color.a * 255.0);       // Pack alpha
-    return packedColor;
-}
-
 float4 main(VSOutput input) : SV_TARGET{
     // calculate eye and direction using hard-coded values
     // float3 dir = rayDirection(45.0, input.uv);

@@ -504,7 +504,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
     float3 colorAccum = emissive;
-    //colorAccum += diffuse + specular;
+    colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 

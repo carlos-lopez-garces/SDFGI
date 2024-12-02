@@ -247,7 +247,11 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
                 probePosition = float3(-400, 20, -400);
 #endif
                 //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(float3(1, 1, 1)), worldHitPos);
-                IrradianceAtlas[probeTexCoord] = lerp(weight * irradianceSample, IrradianceAtlas[probeTexCoord], Hysteresis);
+                if (length(worldHitPos - probePosition) > 100) {
+                    IrradianceAtlas[probeTexCoord] = lerp(weight * float4(0.1,0.1,0.1,1), IrradianceAtlas[probeTexCoord], Hysteresis);
+                } else {
+                    IrradianceAtlas[probeTexCoord] = lerp(weight * irradianceSample, IrradianceAtlas[probeTexCoord], Hysteresis);
+                }
                 float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
                 DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
             } else {

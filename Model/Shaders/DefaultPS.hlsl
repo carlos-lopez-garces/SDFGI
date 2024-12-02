@@ -824,7 +824,7 @@ float3 SampleIrradiance(
 
         float distance = max(1, length(probeWorldPos - fragmentWorldPos));
          // Prevent near-zero distances.
-        float distanceWeight = 1.0 / (pow(distance, 5) + 1.0e-4f);
+        float distanceWeight = 1.0 / (pow(distance, 6) + 1.0e-4f);
         weights[i] = normalDotDir * distanceWeight;
 
         float2 depthUV = GetUV(dirToProbe, probeIndices[i]);
@@ -834,7 +834,7 @@ float3 SampleIrradiance(
 
         float meanDistanceToOccluder = visibility.x;
         float chebyshevWeight = 1.0;
-        if (distance > meanDistanceToOccluder) {
+        if (distance < meanDistanceToOccluder) {
             // In shadow.
             float variance = abs((visibility.x * visibility.x) - visibility.y);
             const float distanceDiff = distance - meanDistanceToOccluder;
@@ -842,6 +842,7 @@ float3 SampleIrradiance(
             
             // Increase contrast in the weight.
             chebyshevWeight = max((chebyshevWeight * chebyshevWeight * chebyshevWeight), 0.0f);
+            chebyshevWeight = 0.1;
         }
 
         // From Vulkan: Avoid visibility weights ever going all of the way to zero because when

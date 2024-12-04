@@ -84,7 +84,7 @@ float3 TextureSpaceToWorldSpace(float3 texCoord) {
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
-
+    float test = 2.0f;
     // Ray March Code
     float start = 0;
     float depth = start;
@@ -97,8 +97,13 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
         hit.z = sdfResolution - 1 - hit.z;
         float dist = SDFTex[hit];
         if (dist == 0.f) {
-            worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-            return AlbedoTex[hit];
+            if (i == 0) {
+                dist = test;
+            }
+            else {
+                worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
+                return AlbedoTex[hit];
+            }
         }
         depth += dist;
     }

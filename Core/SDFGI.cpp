@@ -48,11 +48,13 @@ namespace SDFGI {
     // TODO: grid has to be a perfect square.
     SDFGIProbeGrid::SDFGIProbeGrid(Math::AxisAlignedBox bbox) : sceneBounds(bbox) {
 #if SCENE_IS_CORNELL_BOX
-        sceneBounds.SetMin(Vector3(-400, 80, -400));
+        //sceneBounds.SetMin(Vector3(-400, 80, -400));
+        //sceneBounds.SetMin(Vector3(-160, 350, -350));
+        sceneBounds.SetMin(Vector3(-160, 355, -300));
 
-        float spacing = 800.0f;
+        float spacing = 300.0f;
 #else
-        float spacing = 100.0f;
+        float spacing = 500.0f;
 #endif
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
@@ -640,7 +642,7 @@ namespace SDFGI {
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
 
-        //RenderProbeViz(context, camera);
+        RenderProbeViz(context, camera);
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
         RenderProbeAtlasViz(context, camera);

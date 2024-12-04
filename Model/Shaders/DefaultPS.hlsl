@@ -363,7 +363,7 @@ float3 TestGI(
     }
 
     //Double floor?....
-    uint3 probeCoord = uint3(floor(floor(localPos)));
+    uint3 probeCoord = floor(uint3(floor(floor(localPos))));
 
     float3 interpWeight = frac(localPos);
 
@@ -383,7 +383,8 @@ float3 TestGI(
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
-    for (int i = 0; i < 8; ++i) 
+    //for (int i = 0; i < 8; ++i) 
+    int i = 6;
     //int i = 3;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
@@ -398,6 +399,9 @@ float3 TestGI(
             weights[i] = 0.0;
             //continue;
         }
+        //if (length(dirToProbe) <= 0.5) {
+        //    weights[i] = 0;
+        //}
 
         resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
@@ -501,7 +505,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = SampleIrradiance(vsOutput.worldPos, normal);
+        uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
@@ -555,7 +560,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     
     // return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
     if (UseAtlas) {
-        return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);    
+        //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
     }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

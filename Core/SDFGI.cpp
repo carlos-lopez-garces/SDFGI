@@ -23,7 +23,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
 #define PROBE_IDX_VIZ 1
-#define SCENE_IS_CORNELL_BOX 1
+#define SCENE_IS_CORNELL_BOX 0
 
 using namespace Graphics;
 using namespace DirectX;

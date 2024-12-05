@@ -505,8 +505,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = TestGI(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);

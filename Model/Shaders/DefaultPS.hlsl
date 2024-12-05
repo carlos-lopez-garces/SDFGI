@@ -406,7 +406,7 @@ float3 TestGI(
         resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
-    return resultIrradiance.rgb;
+    return resultIrradiance.rgb / 8;
 }
 
 float3 SampleIrradiance(
@@ -490,6 +490,30 @@ float3 SampleIrradiance(
     return resultIrradiance.rgb;
 }
 
+uint PackFloat4ToUInt(float4 value)
+{
+    uint x = asuint(value.x);  // Convert each float component to uint.
+    uint y = asuint(value.y);
+    uint z = asuint(value.z);
+    uint w = asuint(value.w);
+
+    // Pack the components into a single uint by shifting and combining.
+    uint packed = (x & 0xFF) | ((y & 0xFF) << 8) | ((z & 0xFF) << 16) | ((w & 0xFF) << 24);
+
+    return packed;
+}
+// Unpack a uint back into a float4.
+float4 UnpackUIntToFloat4(uint packed)
+{
+    // Extract each component by shifting and masking.
+    float x = asfloat(packed & 0xFF);            // Extract the least significant 8 bits and convert to float.
+    float y = asfloat((packed >> 8) & 0xFF);     // Shift and mask to get the second component.
+    float z = asfloat((packed >> 16) & 0xFF);    // Shift and mask for the third component.
+    float w = asfloat((packed >> 24) & 0xFF);    // Shift and mask for the fourth component.
+
+    return float4(x, y, z, w);
+}
+
 [RootSignature(Renderer_RootSig)]
 float4 main(VSOutput vsOutput) : SV_Target0
 {
@@ -534,9 +558,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 colorAccum = emissive;
     //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
-    sunShadow = 1;
-    colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-    colorAccum += uh * 0.2f;
+    //sunShadow = 1;
+    colorAccum = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
     // TODO: Shade each light using Forward+ tiles
     
     if (voxelPass) {
@@ -552,10 +575,22 @@ float4 main(VSOutput vsOutput) : SV_Target0
             return baseColor; // Early exit
         }
 
+        //TODO:
+        //1. Parallelize ProbeUpdate
+        //2. Call ProbeUpdate every 3rd frame
+        //3. Atomics for VoxelAlbedo
+        //4. New DirectLighting Func that literally just multiplies baseColor with dot product and Light color
+        //5. Trilinear blending between probes
+
+
+
         // TODO: using baseColor for debug purposes
-        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
-        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * Surface.NdotV, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
+        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * sunShadow, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = UnpackUIntToFloat4(PackFloat4ToUInt( float4(colorAccum.xyz * Surface.NdotV, 1.0) )  );
+        //float4 bruh = float4(baseColor.xyz * Surface.NdotV, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = bruh;
+
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
 
         // we don't really care about the output. how to write into an empty framebuffer? 

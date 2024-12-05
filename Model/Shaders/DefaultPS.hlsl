@@ -505,8 +505,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = TestGI(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
@@ -550,8 +550,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
         }
 
         // TODO: using baseColor for debug purposes
-        SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
-        //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
+        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
 
         // we don't really care about the output. how to write into an empty framebuffer? 

@@ -82,6 +82,10 @@ float3 TextureSpaceToWorldSpace(float3 texCoord) {
     return worldPos;
 }
 
+float ComputeFalloff(float distance, float kd) {
+    return 1.0 / (1.0 + kd * distance * distance);
+}
+
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
     float test = 2.0f;
@@ -102,7 +106,8 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
             }
             else {
                 worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-                return AlbedoTex[hit];
+                float final_dist = depth - start;
+                return AlbedoTex[hit] * ComputeFalloff(final_dist, 0.2);
             }
         }
         depth += dist;

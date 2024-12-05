@@ -356,11 +356,11 @@ float3 TestGI(
     //localPos.y /= 600.0;
     //localPos.z /= 600.0;
 
-    bool hasNegative = any(localPos < 0.0);
-    bool isOver = any(localPos > 1.0);
-    if (hasNegative || isOver) {
-        return float3(1, 1, 1);
-    }
+    //bool hasNegative = any(localPos < 0.0);
+    //bool isOver = any(localPos > 1.0);
+    //if (hasNegative || isOver) {
+    //    return float3(1, 1, 1);
+    //}
 
     //Double floor?....
     uint3 probeCoord = floor(uint3(floor(floor(localPos))));
@@ -383,8 +383,8 @@ float3 TestGI(
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
-    //for (int i = 0; i < 8; ++i) 
-    int i = 6;
+    for (int i = 0; i < 8; ++i) 
+    //int i = 6;
     //int i = 3;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
@@ -406,7 +406,7 @@ float3 TestGI(
         resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
-    return resultIrradiance.rgb;
+    return resultIrradiance.rgb / 8;
 }
 
 float3 SampleIrradiance(
@@ -505,8 +505,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = TestGI(vsOutput.worldPos, normal);
+        //uh = SampleIrradiance(vsOutput.worldPos, normal);
+        uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
@@ -558,6 +558,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
         return baseColor;
     }
     
+    //return float4(normal.xyz * 0.5f + float3(0.5, 0.5, 0.5), 1.0f);
     // return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
     if (UseAtlas) {
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);

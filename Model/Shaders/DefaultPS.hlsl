@@ -505,8 +505,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = TestGI(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
@@ -532,6 +532,27 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 colorAccum = emissive;
     //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
+    {
+        //PCF
+        float currentDepth = vsOutput.sunShadowCoord.z;
+        float shadow = 0.0;
+        float2 texelSize = float2(1.0,1.0) / float2(4096.0, 4096.0);
+        for (int x = -1; x <= 1; ++x)
+        {
+            for (int y = -1; y <= 1; ++y)
+            {
+                shadow += texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(x, y) * texelSize, currentDepth);
+            }
+        }
+        shadow /= 9.0;
+
+
+
+
+        sunShadow = shadow;
+
+    }
+    //return float4(sunShadow, sunShadow, sunShadow, 1.0f);
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
     colorAccum += uh * 0.2f;
     // TODO: Shade each light using Forward+ tiles

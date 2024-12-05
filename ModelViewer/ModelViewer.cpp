@@ -40,9 +40,9 @@
 #include "SDFGI.h"
 #include "Settings.h"
 
-#define RENDER_DIRECT_ONLY 0
+#define RENDER_DIRECT_ONLY 1
 //0- sponza, 1- sonic, 2- sphere
-#define SCENE 2
+#define SCENE 0
 // #define LEGACY_RENDERER
 #include <string>
 
@@ -435,6 +435,10 @@ GlobalConstants ModelViewer::UpdateGlobalConstants(const Math::BaseCamera& cam, 
 
 void ModelViewer::NonLegacyRenderShadowMap(GraphicsContext& gfxContext, const Math::Camera& cam, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor)
 {
+    //Do this multiple times for multiple cascades!
+
+
+
     GlobalConstants globals = UpdateGlobalConstants(cam, true);
     ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
 

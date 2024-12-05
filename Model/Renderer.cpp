@@ -105,6 +105,11 @@ namespace Renderer
     // SDFGI: SDF Ray March Debug
     DescriptorHeap m_SDFRayMarchTextureHeap; 
     DescriptorHandle m_SDFTextures;
+
+
+    // Cascaded Shadow Maps
+    DescriptorHeap m_CSMTextureHeap;
+    DescriptorHandle m_CSMTextures;
 }
 
 void Renderer::Initialize(void)
@@ -299,6 +304,14 @@ void Renderer::Initialize(void)
     InitializeVoxel(); 
     InitializeJFA();
     InitializeRayMarchDebug(); 
+
+
+    // Cascaded ShadowMap Initialization
+    {
+        //1. Create the ShadowBuffer Array
+        //2. Allocate in memory
+        //3. Get the descriptor handle so that we can bind it
+    }
 
     s_Initialized = true;
 }

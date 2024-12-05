@@ -84,6 +84,7 @@ float3 TextureSpaceToWorldSpace(float3 texCoord) {
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
+    //TODO: Replace test with the diagonal length of a unit cube in our given probe grid
     float test = 2.0f;
     // Ray March Code
     float start = 0;

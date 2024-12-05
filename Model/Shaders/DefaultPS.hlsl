@@ -586,7 +586,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
         // TODO: using baseColor for debug purposes
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
-        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * sunShadow, 1.0);
+        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * Surface.NdotV * sunShadow, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = UnpackUIntToFloat4(PackFloat4ToUInt( float4(colorAccum.xyz * Surface.NdotV, 1.0) )  );
         //float4 bruh = float4(baseColor.xyz * Surface.NdotV, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = bruh;

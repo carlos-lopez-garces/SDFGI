@@ -88,7 +88,7 @@ float computeFalloff(float dist, float dk) {
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
-    float test = 100.0f;
+    float test = 4.0f;
     // Ray March Code
     float start = 0;
     float depth = start;

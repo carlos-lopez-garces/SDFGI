@@ -25,6 +25,8 @@
 #define PROBE_IDX_VIZ 1
 #define SCENE_IS_CORNELL_BOX 0
 
+#define THREAD_SIZE_UPDATE_PROBE 10.0f
+
 using namespace Graphics;
 using namespace DirectX;
 
@@ -393,7 +395,11 @@ namespace SDFGI {
         computeContext.SetDynamicConstantBufferView(7, sizeof(SDFData), &sdfData); 
 
         // One thread per probe.
-        computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
+        computeContext.Dispatch(
+            std::ceil(static_cast<float>(probeGrid.probeCount[0]) / THREAD_SIZE_UPDATE_PROBE),
+            std::ceil(static_cast<float>(probeGrid.probeCount[1]) / THREAD_SIZE_UPDATE_PROBE),
+            std::ceil(static_cast<float>(probeGrid.probeCount[2]) / THREAD_SIZE_UPDATE_PROBE)
+        );
 
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);

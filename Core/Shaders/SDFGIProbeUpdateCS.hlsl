@@ -1,5 +1,6 @@
 static const float PI = 3.14159265f;
-static int MAX_MARCHING_STEPS = 512;
+static const int MAX_MARCHING_STEPS = 512;
+static const int THREAD_DIM = 10; 
 
 cbuffer ProbeData : register(b0) {
     float4x4 RandomRotation;         
@@ -193,20 +194,24 @@ float3 oct_decode(float2 o) {
 
 // --- Shader Start ---
 
-[numthreads(1, 1, 1)]
-void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
-    uint probeIndex = dispatchThreadID.x
-        + dispatchThreadID.y * GridSize.x
-        + dispatchThreadID.z * GridSize.x * GridSize.y;
+[numthreads(THREAD_DIM, THREAD_DIM, THREAD_DIM)]
+void main(uint3 DispatchThreadID : SV_DispatchThreadID) {
+    // Compute the probeIndex
+    uint probeIndex = DispatchThreadID.x
+        + DispatchThreadID.y * GridSize.x
+        + DispatchThreadID.z * GridSize.x * GridSize.y;
 
+    // Ensure we don't go out of bounds
     if (probeIndex >= ProbeCount) return;
 
+    // Compute the probe position
     float3 probePosition = ProbePositions[probeIndex].xyz;
 
+    // Compute the atlas coordinate
     uint3 atlasCoord = uint3(GutterSize, GutterSize, 0) + uint3(
-        dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
-        dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
-        dispatchThreadID.z
+        DispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
+        DispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
+        DispatchThreadID.z
     );
 
     const uint sample_count = ProbeAtlasBlockResolution*ProbeAtlasBlockResolution;

@@ -82,9 +82,13 @@ float3 TextureSpaceToWorldSpace(float3 texCoord) {
     return worldPos;
 }
 
+float computeFalloff(float dist, float dk) {
+    return 1.0 / (1.0 + dk * dist);
+}
+
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
-    float test = 2.0f;
+    float test = 30.0f;
     // Ray March Code
     float start = 0;
     float depth = start;
@@ -102,7 +106,7 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
             }
             else {
                 worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-                return AlbedoTex[hit];
+                return AlbedoTex[hit] * computeFalloff(depth - start, 0.15f);
             }
         }
         depth += dist;
@@ -185,6 +189,75 @@ float3 oct_decode(float2 o) {
     return normalize(v);
 }
 
+//static const float2 offsets[5] = {
+//    float2(0.15, 0.15),
+//    float2(0.15, 0.85),
+//    float2(0.85, 0.15),
+//    float2(0.85, 0.85),
+//    float2(0.5, 0.5)
+//};
+
+static const float2 offsets[36] = {
+    float2(0.15, 0.15),
+    float2(0.15, 0.3),
+    float2(0.15, 0.45),
+    float2(0.15, 0.6),
+    float2(0.15, 0.75),
+    float2(0.15, 0.9),
+
+    float2(0.3, 0.15),
+    float2(0.3, 0.3),
+    float2(0.3, 0.45),
+    float2(0.3, 0.6),
+    float2(0.3, 0.75),
+    float2(0.3, 0.9),
+
+    float2(0.45, 0.15),
+    float2(0.45, 0.3),
+    float2(0.45, 0.45),
+    float2(0.45, 0.6),
+    float2(0.45, 0.75),
+    float2(0.45, 0.9),
+
+    float2(0.6, 0.15),
+    float2(0.6, 0.3),
+    float2(0.6, 0.45),
+    float2(0.6, 0.6),
+    float2(0.6, 0.75),
+    float2(0.6, 0.9),
+
+    float2(0.75, 0.15),
+    float2(0.75, 0.3),
+    float2(0.75, 0.45),
+    float2(0.75, 0.6),
+    float2(0.75, 0.75),
+    float2(0.75, 0.9),
+
+    float2(0.9, 0.15),
+    float2(0.9, 0.3),
+    float2(0.9, 0.45),
+    float2(0.9, 0.6),
+    float2(0.9, 0.75),
+    float2(0.9, 0.9),
+};
+//
+//static const float2 offsets[9] = {
+//    float2(0.15, 0.15),
+//    float2(0.15, 0.5),
+//    float2(0.15, 0.85),
+//
+//    float2(0.5, 0.15),
+//    float2(0.5, 0.85),
+//    float2(0.5, 0.5),
+//
+//    float2(0.85, 0.15),
+//    float2(0.85, 0.5),
+//    float2(0.85, 0.85),
+//};
+
+
+
+
 // --- Shader Start ---
 
 [numthreads(1, 1, 1)]
@@ -203,29 +276,50 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
         dispatchThreadID.z
     );
 
-    const uint sample_count = ProbeAtlasBlockResolution*ProbeAtlasBlockResolution;
-
+    //const uint sample_count = ProbeAtlasBlockResolution * ProbeAtlasBlockResolution;
+    const uint sample_count = 36;
     for (uint x = 0; x < ProbeAtlasBlockResolution; ++x) {
         for (uint y = 0; y < ProbeAtlasBlockResolution; ++y) {
-
-            uint i = x + y * ProbeAtlasBlockResolution;
-
-            float3 dir = normalize(mul(RandomRotation, float4(spherical_fibonacci(i, sample_count), 1.0)).xyz);
-
             int2 coord = int2(x, y);
-
-            //float3 texelDirection = oct_decode(normalized_oct_coord(coord, ProbeAtlasBlockResolution));
-            float2 inputToDecode = float2(((float)x + 0.0f) / ProbeAtlasBlockResolution, ((float)y + 0.0f) / ProbeAtlasBlockResolution);
-            inputToDecode *= 2;
-            inputToDecode -= float2(1.0, 1.0);
-
-            //Expects input in [-1, 1] range
-            float3 texelDirection = oct_decode(inputToDecode);
-            //float weight = max(0.0, dot(texelDirection, dir));
-            //weight = 1.0f;
-            float weight = 1.0f;
-
             uint3 probeTexCoord = atlasCoord + uint3(coord, 0.0f);
+
+            //float2 inputToDecode = float2(((float)x + 0.5f) / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
+            //inputToDecode *= 2;
+            //inputToDecode -= float2(1.0, 1.0);
+
+            ////Expects input in [-1, 1] range
+            //float3 texelDirection = oct_decode(inputToDecode);
+            //float weight = 1.0f;
+
+
+
+            //float3 worldHitPos;
+            //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+
+            //IrradianceAtlas[probeTexCoord] += irradianceSample;
+
+
+            for (int s = 0; s < sample_count; s++) {
+                float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
+                inputToDecode *= 2;
+                inputToDecode -= float2(1.0, 1.0);
+
+                //Expects input in [-1, 1] range
+                float3 texelDirection = oct_decode(inputToDecode);
+                float weight = 1.0f;
+
+                
+
+                float3 worldHitPos;
+                float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+
+                //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(float3(1, 1, 1)), worldHitPos);
+                IrradianceAtlas[probeTexCoord] += irradianceSample;
+                //float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+                //DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
+            }
+            IrradianceAtlas[probeTexCoord] /= sample_count;
+            
 #if 0
             float2 o = float2(((float)x + 0.5f) / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
             IrradianceAtlas[probeTexCoord] = float4(o, 0, 1);
@@ -233,7 +327,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 #if 0
             IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
 #endif
-#if 1
+#if 0
             if (SampleSDF) {
                 float3 worldHitPos;
                 float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);

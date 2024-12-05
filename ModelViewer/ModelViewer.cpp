@@ -252,7 +252,7 @@ void ModelViewer::Startup( void )
 #if SCENE == 0
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.3f, 0.95f, 0.1f), true);
 #elif SCENE == 1
-    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(1.0f, 0.0f, 0.0f), true);
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.95f, 0.19f, -0.24f), true);
 #elif SCENE == 2
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #endif

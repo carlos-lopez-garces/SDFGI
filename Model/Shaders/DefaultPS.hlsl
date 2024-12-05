@@ -356,11 +356,11 @@ float3 TestGI(
     //localPos.y /= 600.0;
     //localPos.z /= 600.0;
 
-    bool hasNegative = any(localPos < 0.0);
-    bool isOver = any(localPos > 1.0);
-    if (hasNegative || isOver) {
-        return float3(1, 1, 1);
-    }
+    //bool hasNegative = any(localPos < 0.0);
+    //bool isOver = any(localPos > 1.0);
+    //if (hasNegative || isOver) {
+    //    return float3(1, 1, 1);
+    //}
 
     //Double floor?....
     uint3 probeCoord = floor(uint3(floor(floor(localPos))));
@@ -383,8 +383,8 @@ float3 TestGI(
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
-    //for (int i = 0; i < 8; ++i) 
-    int i = 6;
+    for (int i = 0; i < 8; ++i) 
+    //int i = 6;
     //int i = 3;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
@@ -502,17 +502,6 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 normal = ComputeNormal(vsOutput);
 
     float3 indirectIrradiance = float3(1.0f, 1.0f, 1.0f);
-    float3 uh = float3(0, 0, 0);
-    if (UseAtlas) {
-        //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = TestGI(vsOutput.worldPos, normal);
-        //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
-        //indirectIrradiance *= occlusion;
-        //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-        //return float4(indirectIrradiance, baseColor.a);
-        //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
-    }
 
     float3 F = lerp(kDielectricSpecular, baseColor.rgb, metallicRoughness.x);
 
@@ -529,9 +518,23 @@ float4 main(VSOutput vsOutput) : SV_Target0
     Surface.alpha = metallicRoughness.y * metallicRoughness.y;
     Surface.alphaSqr = Surface.alpha * Surface.alpha;
 
+    float3 uh = float3(0, 0, 0);
+    if (UseAtlas) {
+        //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = SampleIrradiance(vsOutput.worldPos, normal);
+        uh = TestGI(vsOutput.worldPos, normal);
+        //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
+        //indirectIrradiance *= occlusion;
+        //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
+        //return float4(indirectIrradiance, baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
+    }
+
+
     float3 colorAccum = emissive;
     //colorAccum += diffuse + specular;
     float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
+    sunShadow = 1;
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
     colorAccum += uh * 0.2f;
     // TODO: Shade each light using Forward+ tiles
@@ -551,7 +554,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
         // TODO: using baseColor for debug purposes
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz, 1.0);
-        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
+        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * Surface.NdotV, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
         SDFGIVoxelVoronoi[voxelCoords] = uint4(voxelCoords, 255);
 
         // we don't really care about the output. how to write into an empty framebuffer? 

@@ -114,7 +114,8 @@ void Renderer::Initialize(void)
 
     SamplerDesc DefaultSamplerDesc;
     DefaultSamplerDesc.MaxAnisotropy = 8;
-
+    //DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+    DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerDesc CubeMapSamplerDesc = DefaultSamplerDesc;
     //CubeMapSamplerDesc.MaxLOD = 6.0f;
 
@@ -1128,39 +1129,51 @@ void MeshSorter::RenderMeshes(
     voxelPassOff.voxelPass = 0; 
     context.SetDynamicConstantBufferView(kSDFGICommonCBV, sizeof(SDFGIGlobalConstants), &voxelPassOff);
 
+    __declspec(align(16)) struct SDFGIConstants {
+        Vector3 GridSize;                       // 16
 
-  if (UseSDFGI) {
-      __declspec(align(16)) struct SDFGIConstants {
-          Vector3 GridSize;                       // 16
+        Vector3 ProbeSpacing;                   // 16
 
-          Vector3 ProbeSpacing;                   // 16
+        Vector3 SceneMinBounds;                 // 16
 
-          Vector3 SceneMinBounds;                 // 16
+        unsigned int ProbeAtlasBlockResolution; // 4
+        unsigned int GutterSize;                // 4
+        float AtlasWidth;                       // 4
+        float AtlasHeight;                      // 4
 
-          unsigned int ProbeAtlasBlockResolution; // 4
-          unsigned int GutterSize;                // 4
-          float AtlasWidth;                       // 4
-          float AtlasHeight;                      // 4
+        BOOL UseAtlas;                          // 4
+        float GIIntensity;                             // 4
+        float BakedGIIntensity;                             // 4
+        int BakedSunShadow;                             // 4
 
-          bool UseAtlas;                          // 4
-          float Pad0;                             // 4
-          float Pad1;                             // 4
-          float Pad2;                             // 4
-      } sdfgiConstants;
+        int ProbeOffsetX;
+        int ProbeOffsetY;
+        int ProbeOffsetZ;
+    } sdfgiConstants;
+    sdfgiConstants.UseAtlas = false;
+    sdfgiConstants.BakedGIIntensity = mp_SDFGIManager->bakedGIIntensity;
+    sdfgiConstants.BakedSunShadow = mp_SDFGIManager->bakedSunShadow;
 
-      context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
-      context.SetDescriptorTable(Renderer::kSDFGIDepthAtlasSRV, mp_SDFGIManager->GetDepthAtlasDescriptorHandle());
-      SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
-      sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
-      sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
-      sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
-      sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
-      sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
-      sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
-      sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
-      sdfgiConstants.UseAtlas = true;
-      context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
-  }
+    if (UseSDFGI) {
+        context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
+        context.SetDescriptorTable(Renderer::kSDFGIDepthAtlasSRV, mp_SDFGIManager->GetDepthAtlasDescriptorHandle());
+        SDFGI::SDFGIProbeData sdfgiProbeData = mp_SDFGIManager->GetProbeData();
+        sdfgiConstants.GridSize = sdfgiProbeData.GridSize;
+        sdfgiConstants.ProbeSpacing = sdfgiProbeData.ProbeSpacing;
+        sdfgiConstants.SceneMinBounds = sdfgiProbeData.SceneMinBounds;
+        sdfgiConstants.ProbeAtlasBlockResolution = sdfgiProbeData.ProbeAtlasBlockResolution;
+        sdfgiConstants.GutterSize = sdfgiProbeData.GutterSize;
+        sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
+        sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
+        sdfgiConstants.UseAtlas = true;
+        sdfgiConstants.GIIntensity = mp_SDFGIManager->giIntensity;
+        sdfgiConstants.BakedGIIntensity = mp_SDFGIManager->bakedGIIntensity;
+        sdfgiConstants.BakedSunShadow = mp_SDFGIManager->bakedSunShadow;
+        sdfgiConstants.ProbeOffsetX = mp_SDFGIManager->probeOffsetX;
+        sdfgiConstants.ProbeOffsetY = mp_SDFGIManager->probeOffsetY;
+        sdfgiConstants.ProbeOffsetZ = mp_SDFGIManager->probeOffsetZ;
+    }
+    context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
 
 	if (m_BatchType == kShadows)
 	{

@@ -48,11 +48,12 @@ namespace SDFGI {
     // TODO: grid has to be a perfect square.
     SDFGIProbeGrid::SDFGIProbeGrid(Math::AxisAlignedBox bbox) : sceneBounds(bbox) {
 #if SCENE_IS_CORNELL_BOX
-        sceneBounds.SetMin(Vector3(-400, 5, -400));
+        sceneBounds.SetMin(Vector3(-400, 80, -400));
 
         float spacing = 800.0f;
 #else
-        float spacing = 100.0f;
+        // Things look rather good for Sponza with 60. Don't change this.
+        float spacing = 60.0f;
 #endif
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;
@@ -74,16 +75,39 @@ namespace SDFGI {
     void SDFGIProbeGrid::GenerateProbes() {
         probes.clear();
 
+        //000
+        //001
+        //010
         // TODO: make sure that grid really covers the bounding box.
-        for (uint32_t x = 0; x < probeCount[0]; ++x) {
-            for (uint32_t y = 0; y < probeCount[1]; ++y) {
-                for (uint32_t z = 0; z < probeCount[2]; ++z) {
+        //for (uint32_t x = 0; x < probeCount[0]; ++x) {
+        //    for (uint32_t y = 0; y < probeCount[1]; ++y) {
+        //        for (uint32_t z = 0; z < probeCount[2]; ++z) {
+                    //Vector3 position = sceneBounds.GetMin() + Vector3(
+                    //    x * probeSpacing[0],
+                    //    y * probeSpacing[1],
+                    //    z * probeSpacing[2]
+                    //);
+                    //probes.push_back({position});
+        //        }
+        //    }
+        //}
+
+        //xyz
+        //000
+        //100
+        //010
+        //110
+        
+        //001
+        for (uint32_t z = 0; z < probeCount[2]; z++) {
+            for (uint32_t y = 0; y < probeCount[1]; y++) {
+                for (uint32_t x = 0; x < probeCount[0]; x++) {
                     Vector3 position = sceneBounds.GetMin() + Vector3(
                         x * probeSpacing[0],
                         y * probeSpacing[1],
                         z * probeSpacing[2]
                     );
-                    probes.push_back({position});
+                    probes.push_back({ position });
                 }
             }
         }
@@ -295,7 +319,7 @@ namespace SDFGI {
 
     void SDFGIManager::UpdateProbes(GraphicsContext& context) {
         // Only capture irradiance and depth once.
-        if (irradianceCaptured) return;
+        // if (irradianceCaptured) return;
 
         ComputeContext& computeContext = context.GetComputeContext();
 
@@ -329,6 +353,7 @@ namespace SDFGI {
             float MaxWorldDepth;                        // 4
 
             BOOL SampleSDF;
+            float Hysteresis;
         } probeData;
 
         __declspec(align(16)) struct SDFData {
@@ -354,6 +379,7 @@ namespace SDFGI {
         probeData.GutterSize = gutterSize;
         probeData.MaxWorldDepth = probeGrid.sceneBounds.GetMaxDistance();
         probeData.SampleSDF = !useCubemaps;
+        probeData.Hysteresis = hysteresis;
 
         sdfData.xmin = -2000; 
         sdfData.xmax = 2000;
@@ -372,7 +398,7 @@ namespace SDFGI {
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
 
-        irradianceAtlasSRVHandle = externalHeap->Alloc(1);
+        if (!irradianceCaptured) irradianceAtlasSRVHandle = externalHeap->Alloc(1);
         uint32_t DestCount = 1;
         uint32_t SourceCounts[] = { 1 };
         D3D12_CPU_DESCRIPTOR_HANDLE SourceTextures[] =
@@ -381,7 +407,7 @@ namespace SDFGI {
         };
         g_Device->CopyDescriptors(1, &irradianceAtlasSRVHandle, &DestCount, DestCount, SourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-        depthAtlasSRVHandle = externalHeap->Alloc(1);
+        if (!irradianceCaptured) depthAtlasSRVHandle = externalHeap->Alloc(1);
         D3D12_CPU_DESCRIPTOR_HANDLE DepthSourceTextures[] =
         {
              depthAtlas.GetSRV()
@@ -617,7 +643,9 @@ namespace SDFGI {
     void SDFGIManager::Render(GraphicsContext& context, const Math::Camera& camera) {
         ScopedTimer _prof(L"SDFGI Rendering", context);
 
-        RenderProbeViz(context, camera);
+        if (renderProbViz) {
+            RenderProbeViz(context, camera);
+        }
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
         RenderProbeAtlasViz(context, camera);

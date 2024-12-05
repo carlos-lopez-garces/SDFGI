@@ -71,6 +71,15 @@ namespace SDFGI
   // A lot of "Managers" in the codebase.
   class SDFGIManager {
   public:
+    // GUI-controlled.
+    float hysteresis = 0.8f;
+    float giIntensity = 0.001f;
+    float bakedGIIntensity = 0.3f;
+    int bakedSunShadow = 0;
+    bool renderProbViz = false;
+    int probeOffsetX = 0;
+    int probeOffsetY = 0;
+    int probeOffsetZ = 0;
 
     BOOL useCubemaps;
 
@@ -89,8 +98,8 @@ namespace SDFGI
 
     DescriptorHeap *externalHeap;
 
-    uint32_t probeAtlasBlockResolution = 16;
-    uint32_t gutterSize = 2;
+    uint32_t probeAtlasBlockResolution = 8;
+    uint32_t gutterSize = 1;
     ColorBuffer irradianceAtlas;
     ColorBuffer &getIrradianceAtlas() { return irradianceAtlas; }
     D3D12_GPU_DESCRIPTOR_HANDLE GetIrradianceAtlasGpuSRV() const;

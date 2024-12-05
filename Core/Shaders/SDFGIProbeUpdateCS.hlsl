@@ -19,6 +19,7 @@ cbuffer ProbeData : register(b0) {
     float MaxWorldDepth;
 
     bool SampleSDF;
+    float Hysteresis;
 };
 
 cbuffer SDFData : register(b1) {
@@ -33,7 +34,7 @@ cbuffer SDFData : register(b1) {
     float sdfResolution;
 };
 
-StructuredBuffer<float4> ProbePositions : register(t0);
+StructuredBuffer<float3> ProbePositions : register(t0);
 Texture2DArray<float4> ProbeCubemapArray : register(t1);
 
 RWTexture2DArray<float4> IrradianceAtlas : register(u0);
@@ -218,18 +219,41 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             float3 dir = normalize(mul(RandomRotation, float4(spherical_fibonacci(i, sample_count), 1.0)).xyz);
 
             int2 coord = int2(x, y);
-            float3 texelDirection = oct_decode(normalized_oct_coord(coord, ProbeAtlasBlockResolution));
-            float weight = max(0.0, dot(texelDirection, dir));
-            weight = 1.0f;
+
+            //float3 texelDirection = oct_decode(normalized_oct_coord(coord, ProbeAtlasBlockResolution));
+            float2 inputToDecode = float2(((float)x + 0.0f) / ProbeAtlasBlockResolution, ((float)y + 0.0f) / ProbeAtlasBlockResolution);
+            inputToDecode *= 2;
+            inputToDecode -= float2(1.0, 1.0);
+
+            //Expects input in [-1, 1] range
+            float3 texelDirection = oct_decode(inputToDecode);
+            //float weight = max(0.0, dot(texelDirection, dir));
+            //weight = 1.0f;
+            float weight = 1.0f;
 
             uint3 probeTexCoord = atlasCoord + uint3(coord, 0.0f);
-
+#if 0
+            float2 o = float2(((float)x + 0.5f) / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
+            IrradianceAtlas[probeTexCoord] = float4(o, 0, 1);
+#endif
+#if 0
+            IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
+#endif
+#if 1
             if (SampleSDF) {
                 float3 worldHitPos;
-                float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection+dir), worldHitPos);
-                IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
+                float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+#if 0
+                probePosition = float3(-400, 20, -400);
+#endif
+                //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(float3(1, 1, 1)), worldHitPos);
+                if (length(worldHitPos - probePosition) > 100) {
+                    IrradianceAtlas[probeTexCoord] = lerp(weight * float4(0.1,0.1,0.1,1), IrradianceAtlas[probeTexCoord], Hysteresis);
+                } else {
+                    IrradianceAtlas[probeTexCoord] = lerp(weight * irradianceSample, IrradianceAtlas[probeTexCoord], Hysteresis);
+                }
                 float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
-                DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth*worldDepth);
+                DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
             } else {
                 int faceIndex = GetFaceIndex(dir);
                 uint textureIndex = probeIndex * 6 + faceIndex;
@@ -237,6 +261,33 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
                 IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
                 DepthAtlas[probeTexCoord] = 1;
             }
+#endif
+#if 0
+            if (probeIndex == 0) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
+            }
+            else if (probeIndex == 1) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 1, 0, 1);
+            }
+            else if (probeIndex == 2) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 0, 1, 1);
+            }
+            else if (probeIndex == 3) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 0, 1, 1);
+            }
+            else if (probeIndex == 4) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 1, 1, 1);
+            }
+            else if (probeIndex == 5) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 1, 0, 1);
+            }
+            else if (probeIndex == 6) {
+                IrradianceAtlas[probeTexCoord] = float4(1, 1, 1, 1);
+            }
+            else if (probeIndex == 7) {
+                IrradianceAtlas[probeTexCoord] = float4(0, 0, 0, 1);
+            }
+#endif
         }
     }
 }

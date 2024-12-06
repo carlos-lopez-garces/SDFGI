@@ -418,7 +418,15 @@ namespace SDFGI {
         };
         g_Device->CopyDescriptors(1, &depthAtlasSRVHandle, &DestCount, DestCount, DepthSourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-        irradianceCaptured = true;
+        //if (updateTimer > 3) {
+        //    updateTimer = 0;
+        //    irradianceCaptured = false;
+        //}
+        //else {
+        //    updateTimer++;
+        //    irradianceCaptured = true;
+        //}
+        
     }
     
     void SDFGIManager::InitializeProbeAtlasVizShader() {

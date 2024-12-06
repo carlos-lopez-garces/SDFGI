@@ -108,6 +108,11 @@ namespace SDFGI
     // A single texture array containing all cubemap faces.
     ColorBuffer probeCubemapArray;
 
+    //FrameCount for probeUpdates
+    uint32_t updateTimer = 0;
+
+
+
     // A function/lambda for invoking the scene's render function. Used for rendering probe cubemaps.
     std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc;
 

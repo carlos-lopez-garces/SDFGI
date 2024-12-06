@@ -577,7 +577,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
         }
 
         //TODO:
-        //1. Parallelize ProbeUpdate
+        //1. Parallelize ProbeUpdate - done
         //2. Call ProbeUpdate every 3rd frame
         //3. Atomics for VoxelAlbedo
         //4. New DirectLighting Func that literally just multiplies baseColor with dot product and Light color
@@ -587,7 +587,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
         // TODO: using baseColor for debug purposes
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
-        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * Surface.NdotV * sunShadow, 1.0);
+        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * sunShadow, 1.0);
+        //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = UnpackUIntToFloat4(PackFloat4ToUInt( float4(colorAccum.xyz * Surface.NdotV, 1.0) )  );
         //float4 bruh = float4(baseColor.xyz * Surface.NdotV, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = bruh;

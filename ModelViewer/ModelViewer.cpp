@@ -42,7 +42,7 @@
 
 #define RENDER_DIRECT_ONLY 0
 //0- sponza, 1- sonic, 2- sphere
-#define SCENE 2
+#define SCENE 0
 // #define LEGACY_RENDERER
 #include <string>
 

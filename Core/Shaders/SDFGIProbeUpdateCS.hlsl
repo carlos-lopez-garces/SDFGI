@@ -39,7 +39,7 @@ Texture2DArray<float4> ProbeCubemapArray : register(t1);
 RWTexture2DArray<float4> IrradianceAtlas : register(u0);
 RWTexture2DArray<float2> DepthAtlas : register(u1);
 
-RWTexture3D<float4> AlbedoTex : register(u2);
+RWTexture3D<uint4> AlbedoTex : register(u2);
 RWTexture3D<float> SDFTex : register(u3);
 
 SamplerState LinearSampler : register(s0);
@@ -86,6 +86,15 @@ float computeFalloff(float dist, float dk) {
     return 1.0 / (1.0 + dk * dist);
 }
 
+float4 UnpackRGBA8(uint packedColor) {
+    float4 color;
+    color.r = ((packedColor >> 24) & 0xFF) / 255.0; // Extract red and normalize
+    color.g = ((packedColor >> 16) & 0xFF) / 255.0; // Extract green and normalize
+    color.b = ((packedColor >> 8) & 0xFF) / 255.0;  // Extract blue and normalize
+    color.a = (packedColor & 0xFF) / 255.0;         // Extract alpha and normalize
+    return color;
+}
+
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
     float test = 4.0f;
@@ -106,7 +115,7 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
             }
             else {
                 worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-                return AlbedoTex[hit] * computeFalloff(depth - start, 0.15f);
+                return UnpackRGBA8(AlbedoTex[hit]) * computeFalloff(depth - start, 0.15f);
             }
         }
         depth += dist;

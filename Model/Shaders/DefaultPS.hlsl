@@ -83,37 +83,8 @@ cbuffer VoxelConsts : register(b3)
     bool voxelPass; 
 }
 
-RWTexture3D<float4> SDFGIVoxelAlbedo : register(u0);
+RWTexture3D<uint> SDFGIVoxelAlbedo : register(u0);
 RWTexture3D<uint4> SDFGIVoxelVoronoi : register(u1);
-
-uint3 GetVoxelCoords(float3 position, float2 uv, float textureResolution, int axis)
-{
-    uint x, y, z;
-
-    switch (axis) {
-    case 0: // X-axis pass
-        x = (1. - saturate(position.z)) * textureResolution;
-        y = uv.y * textureResolution;
-        z = uv.x * textureResolution;
-        break;
-    case 1: // Y-axis pass
-        x = (1. - uv.x) * textureResolution;
-        y = saturate(position.z) * textureResolution;
-        z = uv.y * textureResolution;
-        break;
-    case 2: // Z-axis pass
-        x = uv.x * textureResolution;
-        y = uv.y * textureResolution;
-        z = saturate(position.z) * textureResolution;
-        break;
-    default:
-        return uint3(0, 0, 0); // Invalid axis
-    }
-
-    return uint3(clamp(x, 0, textureResolution - 1),
-        clamp(y, 0, textureResolution - 1),
-        clamp(z, 0, textureResolution - 1));
-}
 
 struct VSOutput
 {
@@ -213,6 +184,79 @@ float G_Shlick_Smith_Hable(SurfaceProperties Surface, LightProperties Light)
     return 1.0 / lerp(Light.LdotH * Light.LdotH, 1, Surface.alphaSqr * 0.25);
 }
 
+//
+//  Voxelization Helper Functions
+//
+
+uint3 GetVoxelCoords(float3 position, float2 uv, float textureResolution, int axis)
+{
+    uint x, y, z;
+
+    switch (axis) {
+    case 0: // X-axis pass
+        x = (1. - saturate(position.z)) * textureResolution;
+        y = uv.y * textureResolution;
+        z = uv.x * textureResolution;
+        break;
+    case 1: // Y-axis pass
+        x = (1. - uv.x) * textureResolution;
+        y = saturate(position.z) * textureResolution;
+        z = uv.y * textureResolution;
+        break;
+    case 2: // Z-axis pass
+        x = uv.x * textureResolution;
+        y = uv.y * textureResolution;
+        z = saturate(position.z) * textureResolution;
+        break;
+    default:
+        return uint3(0, 0, 0); // Invalid axis
+    }
+
+    return uint3(clamp(x, 0, textureResolution - 1),
+        clamp(y, 0, textureResolution - 1),
+        clamp(z, 0, textureResolution - 1));
+}
+
+// Converts a uint representing an RGBA8 color to a float4
+float4 UnpackRGBA8(uint packedColor) {
+    float4 color;
+    color.r = ((packedColor >> 24) & 0xFF); // Extract red and normalize
+    color.g = ((packedColor >> 16) & 0xFF); // Extract green and normalize
+    color.b = ((packedColor >> 8) & 0xFF);  // Extract blue and normalize
+    color.a = (packedColor & 0xFF);         // Extract alpha and normalize
+    return color;
+}
+
+// Converts a float4 to a uint representing an RGBA8 color
+uint PackRGBA8(float4 color) {
+    uint packedColor = 0;
+    packedColor |= (uint)(color.r) << 24; // Pack red
+    packedColor |= (uint)(color.g) << 16; // Pack green
+    packedColor |= (uint)(color.b) << 8;  // Pack blue
+    packedColor |= (uint)(color.a);       // Pack alpha
+    return packedColor;
+}
+
+void ImageAtomicRGBA8Avg(RWTexture3D<uint> img, uint3 coords, float4 val) {
+    val.xyz *= 255.f;
+    val.w = 1.f;
+    uint newVal = PackRGBA8(val);
+    uint prevStoredVal = 0;
+    uint curStoredVal;
+    // Loop as long as destination value gets changed by other threads
+    do {
+        InterlockedCompareExchange(img[coords], prevStoredVal, newVal, curStoredVal);
+        if (curStoredVal == prevStoredVal) // sucessfully stored into image
+            break;
+        prevStoredVal = curStoredVal;
+        float4 rval = UnpackRGBA8(curStoredVal);
+        rval.xyz *= rval.w;          // Denormalize
+        float4 curValF = rval + val; // Add new value
+        //curValF = float4(1., 0., 0., 0.); 
+        curValF.xyz /= curValF.w;    // Renormalize
+        newVal = PackRGBA8(curValF);
+    } while (true);
+}
 
 // A microfacet based BRDF.
 // alpha:    This is roughness squared as in the Disney PBR model by Burley et al.
@@ -490,30 +534,6 @@ float3 SampleIrradiance(
     return resultIrradiance.rgb;
 }
 
-uint PackFloat4ToUInt(float4 value)
-{
-    uint x = asuint(value.x);  // Convert each float component to uint.
-    uint y = asuint(value.y);
-    uint z = asuint(value.z);
-    uint w = asuint(value.w);
-
-    // Pack the components into a single uint by shifting and combining.
-    uint packed = (x & 0xFF) | ((y & 0xFF) << 8) | ((z & 0xFF) << 16) | ((w & 0xFF) << 24);
-
-    return packed;
-}
-// Unpack a uint back into a float4.
-float4 UnpackUIntToFloat4(uint packed)
-{
-    // Extract each component by shifting and masking.
-    float x = asfloat(packed & 0xFF);            // Extract the least significant 8 bits and convert to float.
-    float y = asfloat((packed >> 8) & 0xFF);     // Shift and mask to get the second component.
-    float z = asfloat((packed >> 16) & 0xFF);    // Shift and mask for the third component.
-    float w = asfloat((packed >> 24) & 0xFF);    // Shift and mask for the fourth component.
-
-    return float4(x, y, z, w);
-}
-
 float calculateBias(float3 normal, float3 lightDir) {
     float slopeBias = 0.005f; // Tunable slope-scaled bias
     float constantBias = 0.002f; // Tunable constant bias
@@ -609,11 +629,9 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //4. New DirectLighting Func that literally just multiplies baseColor with dot product and Light color
         //5. Trilinear blending between probes
 
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow, 1.0));
 
-
-        // TODO: using baseColor for debug purposes
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
-        SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz * sunShadow, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = UnpackUIntToFloat4(PackFloat4ToUInt( float4(colorAccum.xyz * Surface.NdotV, 1.0) )  );
         //float4 bruh = float4(baseColor.xyz * Surface.NdotV, 1.0);

@@ -514,6 +514,25 @@ float4 UnpackUIntToFloat4(uint packed)
     return float4(x, y, z, w);
 }
 
+float calculateBias(float3 normal, float3 lightDir) {
+    float slopeBias = 0.005f; // Tunable slope-scaled bias
+    float constantBias = 0.002f; // Tunable constant bias
+    return constantBias + slopeBias * max(0.0f, 1.0f - dot(normal, lightDir));
+}
+
+float CalculateSlopeBias(float3 surfaceNormal, float3 lightDirection,
+    float baseBias, float slopeFactor)
+{
+    // Calculate the angle between the surface normal and light direction
+    float cosAngle = saturate(dot(surfaceNormal, -lightDirection));
+
+    // Calculate slope-dependent bias
+    // As the surface becomes more perpendicular to light, increase the bias
+    float slopeBias = max(baseBias, slopeFactor * tan(acos(cosAngle)));
+
+    return slopeBias;
+}
+
 [RootSignature(Renderer_RootSig)]
 float4 main(VSOutput vsOutput) : SV_Target0
 {
@@ -545,23 +564,30 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = TestGI(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(indirectIrradiance, baseColor.a);
         //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
-        return float4(uh, 1.0);
+        //return float4(uh, 1.0);
     }
 
 
     float3 colorAccum = emissive;
     //colorAccum += diffuse + specular;
-    float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z);
+    float bias = calculateBias(normal, SunDirection);
+    //float bias = CalculateSlopeBias(normal, normalize(SunDirection),
+    //    0.0f, 0.001f);
+    //bias = 0;
+    float sunShadow = texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z + bias);
     //sunShadow = 1;
     colorAccum = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+    //colorAccum += 
     // TODO: Shade each light using Forward+ tiles
+    float3 bruv = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
+    bruv += uh;
     
     if (voxelPass) {
         // TODO: These are hardcoded values. It's assumed that the viewport size is 
@@ -602,7 +628,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     // return float4(GammaCorrection(ACESToneMapping(SampleIrradiance(vsOutput.worldPos, normalize(vsOutput.normal))), 2.2f), 1.0f);
     if (UseAtlas) {
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
-        return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
+        return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
     }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

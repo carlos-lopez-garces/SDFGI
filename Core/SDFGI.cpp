@@ -319,8 +319,18 @@ namespace SDFGI {
 
 
     void SDFGIManager::UpdateProbes(GraphicsContext& context) {
+
+        if (updateTimer > 3) {
+            updateTimer = 0;
+            //irradianceCaptured = false;
+        }
+        else {
+            updateTimer++;
+            return;
+            //irradianceCaptured = true;
+        }
         // Only capture irradiance and depth once.
-        if (irradianceCaptured) return;
+        //if (irradianceCaptured) return;
 
         ComputeContext& computeContext = context.GetComputeContext();
 
@@ -418,14 +428,6 @@ namespace SDFGI {
         };
         g_Device->CopyDescriptors(1, &depthAtlasSRVHandle, &DestCount, DestCount, DepthSourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-        //if (updateTimer > 3) {
-        //    updateTimer = 0;
-        //    irradianceCaptured = false;
-        //}
-        //else {
-        //    updateTimer++;
-        //    irradianceCaptured = true;
-        //}
         
     }
     

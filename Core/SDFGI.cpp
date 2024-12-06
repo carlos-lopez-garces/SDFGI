@@ -23,7 +23,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
 #define PROBE_IDX_VIZ 1
-#define SCENE_IS_CORNELL_BOX 0
+#define SCENE_IS_CORNELL_BOX 1
 
 using namespace Graphics;
 using namespace DirectX;
@@ -391,7 +391,12 @@ namespace SDFGI {
         computeContext.SetDynamicConstantBufferView(4, sizeof(ProbeData), &probeData);
         computeContext.SetDynamicConstantBufferView(7, sizeof(SDFData), &sdfData); 
 
-        // One thread per probe.
+        // New: One thread per probe atlas contribution texel
+        // CTA size = 8 x 8
+        // Group Count = probeCount.x, ..., probeCount.z
+        // Thus, this line stays the same!
+        
+        // Old: One thread per probe.
         computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
 
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);

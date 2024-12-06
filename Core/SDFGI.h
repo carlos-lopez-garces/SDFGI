@@ -74,9 +74,7 @@ namespace SDFGI
 
     BOOL useCubemaps;
 
-    // Used to ensure that irradiance and cubemaps are only captured in the first render call.
-    // TODO: don't do this when we support dynamic lights and scenes.
-    bool irradianceCaptured = false;
+    bool externalDescAllocated = false;
     bool cubeMapsRendered = false;
 
     int probeCount;

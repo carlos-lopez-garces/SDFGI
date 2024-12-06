@@ -41,8 +41,8 @@
 #include "Settings.h"
 
 #define RENDER_DIRECT_ONLY 0
-//0- sponza, 1- sonic, 2- sphere
-#define SCENE 0
+//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room
+#define SCENE 3
 // #define LEGACY_RENDERER
 #include <string>
 
@@ -218,6 +218,8 @@ void ModelViewer::Startup( void )
         m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
 #elif SCENE == 2
         m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
+#elif SCENE == 3
+        m_ModelInst = Renderer::LoadModel(L"Models/BreakfastRoom/BreakfastRoom.gltf", forceRebuild); 
 #endif
         // 
         // m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
@@ -254,6 +256,10 @@ void ModelViewer::Startup( void )
 #elif SCENE == 1
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.95f, 0.19f, -0.24f), true);
 #elif SCENE == 2
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
+#elif SCENE == 3
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
+#else
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #endif
      

@@ -389,7 +389,7 @@ float3 TestGI(
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
         uint slice_idx = (uint)floor(probeIndices[i].z);
-    //    //return float3(irradianceUV, 0);
+        //return float3(irradianceUV, 0);
 
         float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
         float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
@@ -406,7 +406,7 @@ float3 TestGI(
         resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
-    return resultIrradiance.rgb / 8;
+    return resultIrradiance.rgb;
 }
 
 float3 SampleIrradiance(
@@ -552,6 +552,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(indirectIrradiance, baseColor.a);
         //return float4(GammaCorrection(ACESToneMapping(indirectIrradiance), 2.2f), baseColor.a);
+        return float4(uh, 1.0);
     }
 
 

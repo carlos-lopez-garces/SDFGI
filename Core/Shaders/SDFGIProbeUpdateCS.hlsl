@@ -261,40 +261,47 @@ static const float2 offsets[36] = {
 // --- Shader Start ---
 
 [numthreads(8, 8, 1)]
-void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
-    //Each one of these threads is a pixel in the atlas
-
+void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID) {
+    //Each thread is a texel in the atlas
     uint probeIndex = (dispatchThreadID.x / 8)
                 + (dispatchThreadID.y / 8) * GridSize.x
                 + dispatchThreadID.z * GridSize.x * GridSize.y;
     if (probeIndex >= ProbeCount) return;
 
-    //uint3 coord = uint3(GutterSize, GutterSize, 0) + uint3(
-    //    (dispatchThreadID.x / 8) * (ProbeAtlasBlockResolution + GutterSize),
-    //    (dispatchThreadID.y / 8) * (ProbeAtlasBlockResolution + GutterSize),
-    //    dispatchThreadID.z
-    //);
-    uint3 coord = uint3(GutterSize, GutterSize, 0) + uint3(
+    float3 probePosition = ProbePositions[probeIndex].xyz;
+
+    uint3 probeTexCoord = uint3(GutterSize, GutterSize, 0) + uint3(
         (dispatchThreadID.x / 8) * (GutterSize),
         (dispatchThreadID.y / 8) * (GutterSize),
         dispatchThreadID.z
     );
-    coord += uint3(dispatchThreadID.xy, 0);
-    //uint3 coord = dispatchThreadID;
-    for (int i = 0; i < 36; i++) {
-        if (probeIndex == 7) {
-            IrradianceAtlas[coord] = float4(0, 1, 0, 1);
-        }
-        else {
-            IrradianceAtlas[coord] = float4(1, 0, 0, 1);
-        }
-    }
+    probeTexCoord += uint3(dispatchThreadID.xy, 0);
 
-    
+    const uint sample_count = 36;
+
+    float x = groupThreadID.x;
+    float y = groupThreadID.y;
+    for (int s = 0; s < sample_count; s++) {
+        float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
+        inputToDecode *= 2;
+        inputToDecode -= float2(1.0, 1.0);
+
+        //Expects input in [-1, 1] range
+        float3 texelDirection = oct_decode(inputToDecode);
+
+        float3 worldHitPos;
+        float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+        IrradianceAtlas[probeTexCoord] += irradianceSample;
+
+        //IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
+    }
+    IrradianceAtlas[probeTexCoord] /= sample_count;
+    //IrradianceAtlas[probeTexCoord] = float4( x / 8.0, y / 8.0, 0, 1);
+    //IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
 }
 
 
-
+//
 //void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
 //    uint probeIndex = dispatchThreadID.x
 //        + dispatchThreadID.y * GridSize.x

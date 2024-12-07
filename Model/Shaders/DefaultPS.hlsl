@@ -607,7 +607,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     //colorAccum += 
     // TODO: Shade each light using Forward+ tiles
     float3 bruv = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-    bruv += uh;
+    bruv += uh * baseColor.rgb;
     
     if (voxelPass) {
         // TODO: These are hardcoded values. It's assumed that the viewport size is 

@@ -54,7 +54,7 @@ cbuffer GlobalConstants : register(b1)
 }
 
 cbuffer SDFGIConstants : register(b2) {
-    float3 GridSize;
+    int3 GridSize;
     float Pad0;
 
     float3 ProbeSpacing;
@@ -453,14 +453,29 @@ float3 TestGI(
     return resultIrradiance.rgb;
 }
 
+float3 gridCoordToPosition(int3 c) {
+    return ProbeSpacing * float3(c) + SceneMinBounds;
+}
+
+int3 BaseGridCoord(float3 X) {
+    return clamp(int3((X - SceneMinBounds) / ProbeSpacing),
+                int3(0, 0, 0), 
+                int3(GridSize) - int3(1, 1, 1));
+}
+
 float3 SampleIrradiance(
-    float3 fragmentWorldPos,       
+    float3 wsPosition,       
     float3 normal
 ) {
-    float3 localPos = (fragmentWorldPos - SceneMinBounds) / ProbeSpacing;
-    uint3 probeCoord = uint3(floor(floor(localPos))); 
+    float normalBias = 0.25f;
+    float energyPreservation = 0.85f;
+    float depthSharpness = 50.0f;
 
-    float3 interpWeight = frac(localPos);
+    const float3 w_o = normalize(ViewerPos.xyz - wsPosition);
+
+
+    float3 localPos = (wsPosition - SceneMinBounds) / ProbeSpacing;
+    uint3 probeCoord = uint3(floor(floor(localPos))); 
 
     uint3 probeIndices[8] = {
         uint3(probeCoord),
@@ -473,65 +488,76 @@ float3 SampleIrradiance(
         uint3(probeCoord + float3(1, 1, 1))
     };
 
-    float4 irradiance[8];
-    float weights[8];
-    float weightSum = 0.0;
-    float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+    // uint3 probeIndices[8] = {
+    //     uint3(probeCoord) + (uint3(0, 0 >> 1, 0 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(1, 1 >> 1, 1 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(2, 2 >> 1, 2 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(3, 3 >> 1, 3 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(4, 4 >> 1, 4 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(5, 5 >> 1, 5 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(6, 6 >> 1, 6 >> 2) & uint3(1,1,1)),
+    //     uint3(probeCoord) + (uint3(7, 7 >> 1, 7 >> 2) & uint3(1,1,1))
+    // };
+
+    int3 baseGridCoord = BaseGridCoord(wsPosition);
+    float3 baseProbePos = gridCoordToPosition(baseGridCoord);
+    float4 sumIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+    float sumWeight = 0.0;
+
+    // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
+    float3 alpha = clamp((wsPosition - baseProbePos) / ProbeSpacing, float3(0,0,0), float3(1,1,1));
 
     for (int i = 0; i < 8; ++i) {
+        int3  offset = int3(i, i >> 1, i >> 2) & int3(1,1,1);
+        int3  probeGridCoord = clamp(baseGridCoord + offset, int3(0,0,0), int3(GridSize) - int3(1, 1, 1));
+
+        float3 probePos = gridCoordToPosition(probeGridCoord);
+
+        float3 probeToPoint = wsPosition - probePos + (normal + 3.0 * w_o) * normalBias;
+        float3 dir = normalize(-probeToPoint);
+
+        float3 trilinear = lerp(1.0 - alpha, alpha, offset);
+        float weight = 1.0;
+
+        // Smooth backface test
+        {
+            float3 trueDirectionToProbe = normalize(probePos - wsPosition);
+            weight *= pow(max(0.0001, (dot(trueDirectionToProbe, normal) + 1.0) * 0.5), 2) + 0.2;
+        }
+
+        // Moment visibility test
+        {
+            float2 texCoord = GetUV(-dir, probeIndices[i]);
+            float distToProbe = length(probeToPoint);
+            float2 temp = DepthAtlas.SampleLevel(defaultSampler, float3(texCoord, probeIndices[i].z), 0).rg;
+            float mean = temp.x;
+            float variance = abs(pow(temp.x, 2) - temp.y);
+            float chebyshevWeight = variance / (variance + pow(max(distToProbe - mean, 0.0), 2));
+            chebyshevWeight = max(pow(chebyshevWeight, 3), 0.0);
+            // weight *= (distToProbe <= mean) ? 1.0 : chebyshevWeight;
+        }
+
+        weight = max(0.000001, weight);
 
         float2 irradianceUV = GetUV(normal, probeIndices[i]);
-        //return float3(irradianceUV, 0);
-        irradiance[i] = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
+        float4 probeIrradiance = IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, probeIndices[i].z), 0);
 
-        float3 probeWorldPos = SceneMinBounds + float3(probeIndices[i]) * ProbeSpacing;
-        float3 dirToProbe = normalize(probeWorldPos - fragmentWorldPos);
-
-        // Exclude probes behind the fragment.
-        float normalDotDir = dot(normal, dirToProbe);
-        if (normalDotDir <= 0.0) {
-            weights[i] = 0.0;
-            continue;
+        const float crushThreshold = 0.2;
+        if (weight < crushThreshold) {
+            weight *= weight * weight * (1.0 / pow(crushThreshold,2)); 
         }
 
-        float distance = length(probeWorldPos - fragmentWorldPos);
-         // Prevent near-zero distances.
-        float distanceWeight = 1.0 / (distance * distance + 1.0e-4f);
-        weights[i] = normalDotDir * distanceWeight;
+        weight *= trilinear.x * trilinear.y * trilinear.z;
 
-        float2 depthUV = GetUV(dirToProbe, probeIndices[i]);
-        float2 visibility = DepthAtlas.SampleLevel(defaultSampler, float3(depthUV, probeIndices[i].z), 0).r;
+        sumIrradiance += weight * probeIrradiance;
 
-        float meanDistanceToOccluder = visibility.x;
-        float chebyshevWeight = 1.0;
-        if (distance > meanDistanceToOccluder) {
-            // In shadow.
-            float variance = abs((visibility.x * visibility.x) - visibility.y);
-            const float distanceDiff = distance - meanDistanceToOccluder;
-            chebyshevWeight = variance / (variance + (distanceDiff * distanceDiff));
-            
-            // Increase contrast in the weight.
-            chebyshevWeight = max((chebyshevWeight * chebyshevWeight * chebyshevWeight), 0.0f);
-        }
-
-        // From Vulkan: Avoid visibility weights ever going all of the way to zero because when
-        // *no* probe has visibility we need some fallback value.
-        chebyshevWeight = max(0.05f, chebyshevWeight);
-        weights[i] *= chebyshevWeight;
-
-        weightSum += weights[i];
-
-        resultIrradiance += weights[i] * irradiance[i];
+        sumWeight += weight;
     }
 
-    if (weightSum > 0.0) {
-        // Normalize irradiance.
-        resultIrradiance /= weightSum;
-    } else {
-        resultIrradiance = float4(0.0, 0.0, 0.0, 1.0);
-    }
+    float3 netIrradiance = sumIrradiance.rgb / sumWeight;
+    netIrradiance *= energyPreservation;
 
-    return resultIrradiance.rgb;
+    return 0.5 * PI *netIrradiance;
 }
 
 float calculateBias(float3 normal, float3 lightDir) {
@@ -585,6 +611,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
         uh = SampleIrradiance(vsOutput.worldPos, normal);
+        // uh = SampleIrradiance2(vsOutput.worldPos, normal);
+        // uh = sample_irradiance(vsOutput.worldPos, normal, ViewerPos);
         //uh = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance = TestGI(vsOutput.worldPos, normal);
         //indirectIrradiance *= occlusion;

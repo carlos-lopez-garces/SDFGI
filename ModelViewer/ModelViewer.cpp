@@ -256,7 +256,7 @@ void ModelViewer::Startup( void )
 
     // For Sonic scene.
 #if SCENE == 0
-    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.3f, 0.95f, 0.1f), true);
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.289f, 0.904f, 0.314f), true);
 #elif SCENE == 1
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.95f, 0.19f, -0.24f), true);
 #elif SCENE == 2
@@ -714,6 +714,10 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     Float4 r3(viewMat.GetW().GetX(), viewMat.GetW().GetY(), viewMat.GetW().GetZ(), viewMat.GetW().GetW());
     Float4x4 viewMatrix(r0, r1, r2, r3);
     SunDirection.Update(viewMatrix);
+
+    ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
+    ImGui::SliderFloat("Max Visibility Distance", &mp_SDFGIManager->maxVisibilityDistance, 0.0f, 1000.0f);
+    
     ImGui::Render();
     gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer()); 
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), gfxContext.GetCommandList());

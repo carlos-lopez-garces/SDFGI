@@ -72,6 +72,9 @@ namespace SDFGI
   class SDFGIManager {
   public:
 
+    float hysteresis = 0.0f;
+    float maxVisibilityDistance = 100;
+
     BOOL useCubemaps;
 
     bool externalDescAllocated = false;

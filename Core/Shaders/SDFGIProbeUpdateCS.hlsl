@@ -19,6 +19,7 @@ cbuffer ProbeData : register(b0) {
     float MaxWorldDepth;
 
     bool SampleSDF;
+    float Hysteresis;
 };
 
 cbuffer SDFData : register(b1) {
@@ -271,7 +272,6 @@ static const float2 offsets[36] = {
 
 [numthreads(8, 8, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID) {
-    //Each thread is a texel in the atlas
     uint probeIndex = (dispatchThreadID.x / 8)
                 + (dispatchThreadID.y / 8) * GridSize.x
                 + dispatchThreadID.z * GridSize.x * GridSize.y;
@@ -290,25 +290,35 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
 
     float x = groupThreadID.x;
     float y = groupThreadID.y;
+
+    float4 pastFrameIrradiance = IrradianceAtlas[probeTexCoord];
+
     for (int s = 0; s < sample_count; s++) {
         float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
         inputToDecode *= 2;
         inputToDecode -= float2(1.0, 1.0);
 
-        //Expects input in [-1, 1] range
         float3 texelDirection = oct_decode(inputToDecode);
 
         float3 worldHitPos;
         float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
-        IrradianceAtlas[probeTexCoord] += irradianceSample;
 
-        //IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
+        float distance = length(worldHitPos - probePosition);
+        float distanceWeight = 1.0 / (pow(distance, 2) + 1.0e-4f);
+        // if (distance > MaxWorldDepth) {
+        //     // We can limit the reach of SDF albedo query here.
+        // } else {
+            IrradianceAtlas[probeTexCoord] += irradianceSample;
+        // }
+
+        float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+        DepthAtlas[probeTexCoord] = lerp(float2(worldDepth, worldDepth * worldDepth), DepthAtlas[probeTexCoord], Hysteresis);
     }
+    
     IrradianceAtlas[probeTexCoord] /= sample_count;
-    //IrradianceAtlas[probeTexCoord] = float4( x / 8.0, y / 8.0, 0, 1);
-    //IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
-}
 
+    IrradianceAtlas[probeTexCoord] = lerp(IrradianceAtlas[probeTexCoord], pastFrameIrradiance, Hysteresis);
+}
 
 //
 //void main(uint3 dispatchThreadID : SV_DispatchThreadID) {

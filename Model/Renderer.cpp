@@ -1144,7 +1144,7 @@ void MeshSorter::RenderMeshes(
           float AtlasHeight;                      // 4
 
           bool UseAtlas;                          // 4
-          float Pad0;                             // 4
+          float MaxDistance;                             // 4
           float Pad1;                             // 4
           float Pad2;                             // 4
       } sdfgiConstants;
@@ -1160,6 +1160,7 @@ void MeshSorter::RenderMeshes(
       sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
       sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
       sdfgiConstants.UseAtlas = true;
+      sdfgiConstants.MaxDistance = mp_SDFGIManager->maxVisibilityDistance;
       context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
   }
 

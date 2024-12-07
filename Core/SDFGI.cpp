@@ -368,6 +368,7 @@ namespace SDFGI {
             float MaxWorldDepth;                        // 4
 
             BOOL SampleSDF;
+            float Hysteresis;
         } probeData;
 
         __declspec(align(16)) struct SDFData {
@@ -391,8 +392,9 @@ namespace SDFGI {
         probeData.SceneMinBounds = probeGrid.sceneBounds.GetMin();
         probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
         probeData.GutterSize = gutterSize;
-        probeData.MaxWorldDepth = probeGrid.sceneBounds.GetMaxDistance();
+        probeData.MaxWorldDepth = maxVisibilityDistance;
         probeData.SampleSDF = !useCubemaps;
+        probeData.Hysteresis = hysteresis;
 
         sdfData.xmin = -2000; 
         sdfData.xmax = 2000;

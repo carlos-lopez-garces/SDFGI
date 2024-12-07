@@ -629,6 +629,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //4. New DirectLighting Func that literally just multiplies baseColor with dot product and Light color
         //5. Trilinear blending between probes
 
+        //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum.xyz), 1.0));
         ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow, 1.0));
 
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);

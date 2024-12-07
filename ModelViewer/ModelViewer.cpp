@@ -640,27 +640,16 @@ void ModelViewer::RenderScene( void )
 {
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Render");
 
+    // ray march debug toggle
+    static bool rayMarchDebug = false;
+    if (GameInput::IsFirstPressed(GameInput::kKey_0))
+        rayMarchDebug = !rayMarchDebug;
+
     uint32_t FrameIndex = TemporalEffects::GetFrameIndexMod2();
     const D3D12_VIEWPORT& viewport = m_MainViewport;
     const D3D12_RECT& scissor = m_MainScissor;
 
     ParticleEffectManager::Update(gfxContext.GetComputeContext(), Graphics::GetFrameTime());
-#if RAYMARCH_TEST
-    static bool rayMarchDebug = true;
-    
-    if (GameInput::IsFirstPressed(GameInput::kKey_0)) 
-        rayMarchDebug = !rayMarchDebug;
-
-    NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
-    NonLegacyRenderSDF(gfxContext, true);
-
-    if (rayMarchDebug) {
-        RayMarcherDebug(gfxContext, m_Camera, viewport, scissor);
-    } 
-    else {
-        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
-    }
-#else
     if (m_ModelInst.IsNull())
     {
 #ifdef LEGACY_RENDERER
@@ -673,15 +662,20 @@ void ModelViewer::RenderScene( void )
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
         NonLegacyRenderSDF(gfxContext, /*runSDFOnce=*/true);
         mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
+
+        if (rayMarchDebug) {
+            RayMarcherDebug(gfxContext, m_Camera, viewport, scissor);
+        } else {
 #if RENDER_DIRECT_ONLY == 1
-        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
+            NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
 #else
-        NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
+            NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
 #endif
+        }
     }
 
-    mp_SDFGIManager->Render(gfxContext, m_Camera);
-#endif
+    if (!rayMarchDebug)
+        mp_SDFGIManager->Render(gfxContext, m_Camera);
 
 #if MAIN_SUN_SHADOW_BUFFER_VIS == 1  //all main macros in pch.h
     Renderer::DrawShadowBuffer(gfxContext, viewport, scissor);

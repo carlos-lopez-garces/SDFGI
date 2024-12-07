@@ -72,11 +72,12 @@ namespace SDFGI
   class SDFGIManager {
   public:
 
+    float hysteresis = 0.0f;
+    float maxVisibilityDistance = 100;
+
     BOOL useCubemaps;
 
-    // Used to ensure that irradiance and cubemaps are only captured in the first render call.
-    // TODO: don't do this when we support dynamic lights and scenes.
-    bool irradianceCaptured = false;
+    bool externalDescAllocated = false;
     bool cubeMapsRendered = false;
 
     int probeCount;
@@ -89,8 +90,8 @@ namespace SDFGI
 
     DescriptorHeap *externalHeap;
 
-    uint32_t probeAtlasBlockResolution = 16;
-    uint32_t gutterSize = 2;
+    uint32_t probeAtlasBlockResolution = 8;
+    uint32_t gutterSize = 1;
     ColorBuffer irradianceAtlas;
     ColorBuffer &getIrradianceAtlas() { return irradianceAtlas; }
     D3D12_GPU_DESCRIPTOR_HANDLE GetIrradianceAtlasGpuSRV() const;
@@ -107,6 +108,11 @@ namespace SDFGI
     D3D12_CPU_DESCRIPTOR_HANDLE **probeCubemapFaceUAVs;
     // A single texture array containing all cubemap faces.
     ColorBuffer probeCubemapArray;
+
+    //FrameCount for probeUpdates
+    uint32_t updateTimer = 0;
+
+
 
     // A function/lambda for invoking the scene's render function. Used for rendering probe cubemaps.
     std::function<void(GraphicsContext&, const Math::Camera&, const D3D12_VIEWPORT&, const D3D12_RECT&)> renderFunc;

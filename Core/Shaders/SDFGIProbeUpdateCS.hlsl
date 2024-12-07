@@ -19,6 +19,7 @@ cbuffer ProbeData : register(b0) {
     float MaxWorldDepth;
 
     bool SampleSDF;
+    float Hysteresis;
 };
 
 cbuffer SDFData : register(b1) {
@@ -33,13 +34,13 @@ cbuffer SDFData : register(b1) {
     float sdfResolution;
 };
 
-StructuredBuffer<float4> ProbePositions : register(t0);
+StructuredBuffer<float3> ProbePositions : register(t0);
 Texture2DArray<float4> ProbeCubemapArray : register(t1);
 
 RWTexture2DArray<float4> IrradianceAtlas : register(u0);
 RWTexture2DArray<float2> DepthAtlas : register(u1);
 
-RWTexture3D<uint> AlbedoTex : register(u2);  // RGBA8 packed into 32-bit uint
+RWTexture3D<uint4> AlbedoTex : register(u2);
 RWTexture3D<float> SDFTex : register(u3);
 
 SamplerState LinearSampler : register(s0);
@@ -82,7 +83,10 @@ float3 TextureSpaceToWorldSpace(float3 texCoord) {
     return worldPos;
 }
 
-// Converts a uint representing an RGBA8 color to a float4
+float computeFalloff(float dist, float dk) {
+    return 1.0 / (1.0 + dk * dist);
+}
+
 float4 UnpackRGBA8(uint packedColor) {
     float4 color;
     color.r = ((packedColor >> 24) & 0xFF) / 255.0; // Extract red and normalize
@@ -94,7 +98,7 @@ float4 UnpackRGBA8(uint packedColor) {
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
-
+    float test = 4.0f;
     // Ray March Code
     float start = 0;
     float depth = start;
@@ -107,8 +111,13 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
         hit.z = sdfResolution - 1 - hit.z;
         float dist = SDFTex[hit];
         if (dist == 0.f) {
-            worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-            return float4(UnpackRGBA8(AlbedoTex[hit]).xyz, 1.f);
+            if (i == 0) {
+                dist = test;
+            }
+            else {
+                worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
+                return UnpackRGBA8(AlbedoTex[hit]) * computeFalloff(depth - start, 0.15f);
+            }
         }
         depth += dist;
     }
@@ -190,53 +199,240 @@ float3 oct_decode(float2 o) {
     return normalize(v);
 }
 
+//static const float2 offsets[5] = {
+//    float2(0.15, 0.15),
+//    float2(0.15, 0.85),
+//    float2(0.85, 0.15),
+//    float2(0.85, 0.85),
+//    float2(0.5, 0.5)
+//};
+
+static const float2 offsets[36] = {
+    float2(0.15, 0.15),
+    float2(0.15, 0.3),
+    float2(0.15, 0.45),
+    float2(0.15, 0.6),
+    float2(0.15, 0.75),
+    float2(0.15, 0.9),
+
+    float2(0.3, 0.15),
+    float2(0.3, 0.3),
+    float2(0.3, 0.45),
+    float2(0.3, 0.6),
+    float2(0.3, 0.75),
+    float2(0.3, 0.9),
+
+    float2(0.45, 0.15),
+    float2(0.45, 0.3),
+    float2(0.45, 0.45),
+    float2(0.45, 0.6),
+    float2(0.45, 0.75),
+    float2(0.45, 0.9),
+
+    float2(0.6, 0.15),
+    float2(0.6, 0.3),
+    float2(0.6, 0.45),
+    float2(0.6, 0.6),
+    float2(0.6, 0.75),
+    float2(0.6, 0.9),
+
+    float2(0.75, 0.15),
+    float2(0.75, 0.3),
+    float2(0.75, 0.45),
+    float2(0.75, 0.6),
+    float2(0.75, 0.75),
+    float2(0.75, 0.9),
+
+    float2(0.9, 0.15),
+    float2(0.9, 0.3),
+    float2(0.9, 0.45),
+    float2(0.9, 0.6),
+    float2(0.9, 0.75),
+    float2(0.9, 0.9),
+};
+//
+//static const float2 offsets[9] = {
+//    float2(0.15, 0.15),
+//    float2(0.15, 0.5),
+//    float2(0.15, 0.85),
+//
+//    float2(0.5, 0.15),
+//    float2(0.5, 0.85),
+//    float2(0.5, 0.5),
+//
+//    float2(0.85, 0.15),
+//    float2(0.85, 0.5),
+//    float2(0.85, 0.85),
+//};
+
+
+
+
 // --- Shader Start ---
 
-[numthreads(1, 1, 1)]
-void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
-    uint probeIndex = dispatchThreadID.x
-        + dispatchThreadID.y * GridSize.x
-        + dispatchThreadID.z * GridSize.x * GridSize.y;
-
+[numthreads(8, 8, 1)]
+void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID) {
+    uint probeIndex = (dispatchThreadID.x / 8)
+                + (dispatchThreadID.y / 8) * GridSize.x
+                + dispatchThreadID.z * GridSize.x * GridSize.y;
     if (probeIndex >= ProbeCount) return;
 
     float3 probePosition = ProbePositions[probeIndex].xyz;
 
-    uint3 atlasCoord = uint3(GutterSize, GutterSize, 0) + uint3(
-        dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
-        dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
+    uint3 probeTexCoord = uint3(GutterSize, GutterSize, 0) + uint3(
+        (dispatchThreadID.x / 8) * (GutterSize),
+        (dispatchThreadID.y / 8) * (GutterSize),
         dispatchThreadID.z
     );
+    probeTexCoord += uint3(dispatchThreadID.xy, 0);
 
-    const uint sample_count = ProbeAtlasBlockResolution*ProbeAtlasBlockResolution;
+    const uint sample_count = 36;
 
-    for (uint x = 0; x < ProbeAtlasBlockResolution; ++x) {
-        for (uint y = 0; y < ProbeAtlasBlockResolution; ++y) {
+    float x = groupThreadID.x;
+    float y = groupThreadID.y;
 
-            uint i = x + y * ProbeAtlasBlockResolution;
+    float4 pastFrameIrradiance = IrradianceAtlas[probeTexCoord];
 
-            float3 dir = normalize(mul(RandomRotation, float4(spherical_fibonacci(i, sample_count), 1.0)).xyz);
+    for (int s = 0; s < sample_count; s++) {
+        float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
+        inputToDecode *= 2;
+        inputToDecode -= float2(1.0, 1.0);
 
-            int2 coord = int2(x, y);
-            float3 texelDirection = oct_decode(normalized_oct_coord(coord, ProbeAtlasBlockResolution));
-            float weight = max(0.0, dot(texelDirection, dir));
-            weight = 1.0f;
+        float3 texelDirection = oct_decode(inputToDecode);
 
-            uint3 probeTexCoord = atlasCoord + uint3(coord, 0.0f);
+        float3 worldHitPos;
+        float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
 
-            if (SampleSDF) {
-                float3 worldHitPos;
-                float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection+dir), worldHitPos);
-                IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
-                float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
-                DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth*worldDepth);
-            } else {
-                int faceIndex = GetFaceIndex(dir);
-                uint textureIndex = probeIndex * 6 + faceIndex;
-                float4 irradianceSample = ProbeCubemapArray.SampleLevel(LinearSampler, float3(coord.xy * 0.5 + 0.5, textureIndex), 0);
-                IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
-                DepthAtlas[probeTexCoord] = 1;
-            }
-        }
+        float distance = length(worldHitPos - probePosition);
+        float distanceWeight = 1.0 / (pow(distance, 2) + 1.0e-4f);
+        // if (distance > MaxWorldDepth) {
+        //     // We can limit the reach of SDF albedo query here.
+        // } else {
+            IrradianceAtlas[probeTexCoord] += irradianceSample;
+        // }
+
+        float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+        DepthAtlas[probeTexCoord] = lerp(float2(worldDepth, worldDepth * worldDepth), DepthAtlas[probeTexCoord], Hysteresis);
     }
+    
+    IrradianceAtlas[probeTexCoord] /= sample_count;
+
+    IrradianceAtlas[probeTexCoord] = lerp(IrradianceAtlas[probeTexCoord], pastFrameIrradiance, Hysteresis);
 }
+
+//
+//void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
+//    uint probeIndex = dispatchThreadID.x
+//        + dispatchThreadID.y * GridSize.x
+//        + dispatchThreadID.z * GridSize.x * GridSize.y;
+//
+//    if (probeIndex >= ProbeCount) return;
+//
+//    float3 probePosition = ProbePositions[probeIndex].xyz;
+//
+//    uint3 atlasCoord = uint3(GutterSize, GutterSize, 0) + uint3(
+//        dispatchThreadID.x * (ProbeAtlasBlockResolution + GutterSize),
+//        dispatchThreadID.y * (ProbeAtlasBlockResolution + GutterSize),
+//        dispatchThreadID.z
+//    );
+//
+//    //const uint sample_count = ProbeAtlasBlockResolution * ProbeAtlasBlockResolution;
+//    const uint sample_count = 36;
+//    for (uint x = 0; x < ProbeAtlasBlockResolution; ++x) {
+//        for (uint y = 0; y < ProbeAtlasBlockResolution; ++y) {
+//            int2 coord = int2(x, y);
+//            uint3 probeTexCoord = atlasCoord + uint3(coord, 0.0f);
+//
+//            //float2 inputToDecode = float2(((float)x + 0.5f) / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
+//            //inputToDecode *= 2;
+//            //inputToDecode -= float2(1.0, 1.0);
+//
+//            ////Expects input in [-1, 1] range
+//            //float3 texelDirection = oct_decode(inputToDecode);
+//            //float weight = 1.0f;
+//
+//
+//
+//            //float3 worldHitPos;
+//            //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+//
+//            //IrradianceAtlas[probeTexCoord] += irradianceSample;
+//
+//
+//            for (int s = 0; s < sample_count; s++) {
+//                float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
+//                inputToDecode *= 2;
+//                inputToDecode -= float2(1.0, 1.0);
+//
+//                //Expects input in [-1, 1] range
+//                float3 texelDirection = oct_decode(inputToDecode);
+//                float weight = 1.0f;
+//
+//
+//
+//                float3 worldHitPos;
+//                float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+//
+//                //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(float3(1, 1, 1)), worldHitPos);
+//                IrradianceAtlas[probeTexCoord] += irradianceSample;
+//                //float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+//                //DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
+//            }
+//            IrradianceAtlas[probeTexCoord] /= sample_count;
+//
+//#if 0
+//            float2 o = float2(((float)x + 0.5f) / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
+//            IrradianceAtlas[probeTexCoord] = float4(o, 0, 1);
+//#endif
+//#if 0
+//            IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
+//#endif
+//#if 0
+//            if (SampleSDF) {
+//                float3 worldHitPos;
+//                float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+//#if 0
+//                probePosition = float3(-400, 20, -400);
+//#endif
+//                //float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(float3(1, 1, 1)), worldHitPos);
+//                IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
+//                float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+//                DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
+//            }
+//            else {
+//                int faceIndex = GetFaceIndex(dir);
+//                uint textureIndex = probeIndex * 6 + faceIndex;
+//                float4 irradianceSample = ProbeCubemapArray.SampleLevel(LinearSampler, float3(coord.xy * 0.5 + 0.5, textureIndex), 0);
+//                IrradianceAtlas[probeTexCoord] = weight * irradianceSample;
+//                DepthAtlas[probeTexCoord] = 1;
+//            }
+//#endif
+//#if 0
+//            if (probeIndex == 0) {
+//                IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
+//            }
+//            else if (probeIndex == 1) {
+//                IrradianceAtlas[probeTexCoord] = float4(0, 1, 0, 1);
+//            }
+//            else if (probeIndex == 2) {
+//                IrradianceAtlas[probeTexCoord] = float4(0, 0, 1, 1);
+//            }
+//            else if (probeIndex == 3) {
+//                IrradianceAtlas[probeTexCoord] = float4(1, 0, 1, 1);
+//            }
+//            else if (probeIndex == 4) {
+//                IrradianceAtlas[probeTexCoord] = float4(0, 1, 1, 1);
+//            }
+//            else if (probeIndex == 5) {
+//                IrradianceAtlas[probeTexCoord] = float4(1, 1, 0, 1);
+//            }
+//            else if (probeIndex == 6) {
+//                IrradianceAtlas[probeTexCoord] = float4(1, 1, 1, 1);
+//            }
+//            else if (probeIndex == 7) {
+//                IrradianceAtlas[probeTexCoord] = float4(0, 0, 0, 1);
+//            }
+//#endif
+//        }
+//    }
+//}

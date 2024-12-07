@@ -13,6 +13,7 @@
 *.log
 * - Copy*.*
 *.mini
+*.dds
 imgui.ini
 Build_VS*
 Build

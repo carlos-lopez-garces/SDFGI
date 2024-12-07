@@ -41,8 +41,8 @@
 #include "Settings.h"
 
 #define RENDER_DIRECT_ONLY 0
-//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room
-#define SCENE 3
+//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street
+#define SCENE 0
 // #define LEGACY_RENDERER
 #include <string>
 
@@ -220,6 +220,10 @@ void ModelViewer::Startup( void )
         m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
 #elif SCENE == 3
         m_ModelInst = Renderer::LoadModel(L"Models/BreakfastRoom/BreakfastRoom.gltf", forceRebuild); 
+#elif SCENE == 4
+        m_ModelInst = Renderer::LoadModel(L"Models/JapaneseStreet/JapaneseStreet.gltf", forceRebuild);
+#else
+        m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
 #endif
         // 
         // m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);

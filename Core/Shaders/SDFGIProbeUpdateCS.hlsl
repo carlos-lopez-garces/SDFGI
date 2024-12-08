@@ -97,7 +97,7 @@ float4 UnpackRGBA8(uint packedColor) {
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
-    float test = 4.0f;
+    float test = 15.0f;
     // Ray March Code
     float start = 0;
     float depth = start;
@@ -115,7 +115,7 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
             }
             else {
                 worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-                return UnpackRGBA8(AlbedoTex[hit]) * computeFalloff(depth - start, 0.5f);
+                return UnpackRGBA8(AlbedoTex[hit]) * computeFalloff(depth - start, 0.05f);
             }
         }
         depth += dist;
@@ -313,8 +313,13 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
 
             float3 worldHitPos;
             float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
-            IrradianceAtlas[probeTexCoord] = irradianceSample;
+            if (length(worldHitPos - probePosition) > 150) {
+                IrradianceAtlas[probeTexCoord] = irradianceSample;
+            }
+            
 
+            float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+            DepthAtlas[probeTexCoord] = float2(worldDepth, worldDepth * worldDepth);
             //IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
     }
         //IrradianceAtlas[probeTexCoord] /= sample_count;

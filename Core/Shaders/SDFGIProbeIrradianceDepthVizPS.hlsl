@@ -23,6 +23,7 @@ float4 main(VS_OUTPUT input) : SV_Target
     );
 
     return IrradianceAtlas.SampleLevel(LinearSampler, float3(uv, /*depth_index=*/0), 0);
+    //return float4(DepthAtlas.SampleLevel(LinearSampler, float3(uv, /*depth_index=*/0), 0).x, 0, 0, 1);
 
     // float worldDepth = DepthAtlas.SampleLevel(LinearSampler, float3(input.texCoord, /*depth_index=*/0), 0).r;
     // float normalizedDepth = clamp((worldDepth - 0.1f) / (MaxWorldDepth - 0.1f), 0.0f, 1.0f);

@@ -1,9 +1,6 @@
 ![mainCoverPhoto](https://github.com/user-attachments/assets/e9a462d7-2068-4fba-8dce-e96ef2cd7070)
 # Signed Distance Field Global Illumination (SDFGI)
 
-
-## 🚀 Overview
-
 > **University of Pennsylvania, CIS 5650: GPU Programming and Architecture, Final Project**
 > * Carlos Lopez Garces
 >   + [Personal Website](https://carlos-lopez-garces.github.io/) 
@@ -11,6 +8,8 @@
 >   + [Personal Website](https://www.logancho.com/)
 > * Michael Mason
 >   + [Personal Website](https://www.michaelmason.xyz/)
+
+## 🚀 Overview
 
 **Signed Distance Field Global Illumination (SDFGI) is a solution to real-time diffuse global illumination for games.**
 

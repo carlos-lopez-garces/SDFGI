@@ -41,7 +41,7 @@
 #include "Settings.h"
 
 #define RENDER_DIRECT_ONLY 0
-//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street
+//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street, 5- San Miguel, 6- SponzaAnimated
 #define SCENE 0
 // #define LEGACY_RENDERER
 #include <string>
@@ -108,6 +108,7 @@ private:
     float giIntensity = 1.0f;
     bool showIrradianceAtlas = false;
     bool showVisibilityAtlas = false;
+    bool runSDFOnce = true;
 };
 
 CREATE_APPLICATION( ModelViewer )
@@ -229,8 +230,10 @@ void ModelViewer::Startup( void )
         m_ModelInst = Renderer::LoadModel(L"Models/BreakfastRoom/BreakfastRoom.gltf", forceRebuild); 
 #elif SCENE == 4
         m_ModelInst = Renderer::LoadModel(L"Models/JapaneseStreet/JapaneseStreet.gltf", forceRebuild);
-#else
-        m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
+#elif SCENE == 5
+        m_ModelInst = Renderer::LoadModel(L"Models/SanMiguel/SanMiguel.gltf", forceRebuild);
+#elif SCENE == 6
+        m_ModelInst = Renderer::LoadModel(L"Models/SponzaAnimated/SponzaAnimated.gltf", forceRebuild);
 #endif
         // 
         // m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
@@ -270,6 +273,8 @@ void ModelViewer::Startup( void )
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #elif SCENE == 3
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
+#elif SCENE == 6
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.289f, 0.904f, 0.213f), true);
 #else
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #endif
@@ -667,7 +672,7 @@ void ModelViewer::RenderScene( void )
     else
     {
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
-        NonLegacyRenderSDF(gfxContext, /*runSDFOnce=*/true);
+        NonLegacyRenderSDF(gfxContext, /*runSDFOnce=*/runSDFOnce);
         mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
 
         if (rayMarchDebug) {
@@ -749,6 +754,22 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     mp_SDFGIManager->renderVisibilityAtlas = envMode == 2;
     ImGui::SliderInt("Atlas Slice", &mp_SDFGIManager->renderAtlasZIndex, 0.0, mp_SDFGIManager->maxZIndex);
     // ImGui::SliderFloat("Max Visibility Distance", &mp_SDFGIManager->maxVisibilityDistance, 0.0f, 1000.0f);
+
+    static const char* animMode[]{ "Animation Paused", "Animation Playing" }; 
+    static const char** animModeSelect = &animMode[0]; 
+
+    ImGui::LabelText("", *animModeSelect);
+    if (ImGui::Button("Play")) {
+        m_ModelInst.PlayAnimation(0, true); 
+        runSDFOnce = false; 
+        animModeSelect = &animMode[1]; 
+    }
+    ImGui::SameLine(); 
+    if (ImGui::Button("Pause")) {
+        m_ModelInst.PauseAnimation(0); 
+        runSDFOnce = true; 
+        animModeSelect = &animMode[0];
+    }
 
     ImGui::End();
 

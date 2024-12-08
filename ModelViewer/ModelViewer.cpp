@@ -66,7 +66,7 @@ namespace Graphics
 
 namespace SDFGI
 {
-    bool runSDFonce = false; 
+    bool runSDFonce = true; 
 }
 
 class ModelViewer : public GameCore::IGameApp

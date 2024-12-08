@@ -390,23 +390,23 @@ float2 GetUV(float3 direction, uint3 probeIndex) {
     return texCoord;
 }
 
+float3 gridCoordToPosition(int3 c) {
+    return ProbeSpacing * float3(c) + SceneMinBounds;
+}
+
+int3 BaseGridCoord(float3 X) {
+    return clamp(int3((X - SceneMinBounds) / ProbeSpacing),
+        int3(0, 0, 0),
+        int3(GridSize) - int3(1, 1, 1));
+}
+
+
 float3 TestGI(
     float3 fragmentWorldPos,
     float3 normal
 ) {
     float3 localPos = (fragmentWorldPos - SceneMinBounds) / (float)ProbeSpacing;
-    //float3 localPos = (fragmentWorldPos - SceneMinBounds);
-    //localPos.x /= 600.0;
-    //localPos.y /= 600.0;
-    //localPos.z /= 600.0;
 
-    //bool hasNegative = any(localPos < 0.0);
-    //bool isOver = any(localPos > 1.0);
-    //if (hasNegative || isOver) {
-    //    return float3(1, 1, 1);
-    //}
-
-    //Double floor?....
     uint3 probeCoord = floor(uint3(floor(floor(localPos))));
 
     float3 interpWeight = frac(localPos);
@@ -427,8 +427,17 @@ float3 TestGI(
     float weightSum = 0.0;
     float4 resultIrradiance = float4(0.0, 0.0, 0.0, 0.0);
 
+
+    int3 baseGridCoord = BaseGridCoord(fragmentWorldPos);
+    float3 baseProbePos = gridCoordToPosition(baseGridCoord);
+    float4 sumIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+    float sumWeight = 0.0;
+
+    // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
+    float3 alpha = clamp((fragmentWorldPos - baseProbePos) / ProbeSpacing, float3(0, 0, 0), float3(1, 1, 1));
+
     for (int i = 0; i < 8; ++i) 
-    //int i = 6;
+    //int i = 0;
     //int i = 3;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
@@ -446,22 +455,15 @@ float3 TestGI(
         //if (length(dirToProbe) <= 0.5) {
         //    weights[i] = 0;
         //}
-
+        int3  offset = int3(i, i >> 1, i >> 2) & int3(1, 1, 1);
+        float3 trilinear = lerp(1.0 - alpha, alpha, offset);
+        weights[i] *= trilinear.x * trilinear.y * trilinear.z;
         resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
     return resultIrradiance.rgb;
 }
 
-float3 gridCoordToPosition(int3 c) {
-    return ProbeSpacing * float3(c) + SceneMinBounds;
-}
-
-int3 BaseGridCoord(float3 X) {
-    return clamp(int3((X - SceneMinBounds) / ProbeSpacing),
-                int3(0, 0, 0), 
-                int3(GridSize) - int3(1, 1, 1));
-}
 
 float3 SampleIrradiance(
     float3 wsPosition,       
@@ -523,6 +525,9 @@ float3 SampleIrradiance(
         {
             float3 trueDirectionToProbe = normalize(probePos - wsPosition);
             weight *= pow(max(0.0001, (dot(trueDirectionToProbe, normal) + 1.0) * 0.5), 2) + 0.2;
+            //if (dot(trueDirectionToProbe, normal) < 0) {
+            //    weight = 0;
+            //}
         }
 
         // Moment visibility test
@@ -611,6 +616,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
         uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = TestGI(vsOutput.worldPos, normal);
         // uh = SampleIrradiance2(vsOutput.worldPos, normal);
         // uh = sample_irradiance(vsOutput.worldPos, normal, ViewerPos);
         //uh = TestGI(vsOutput.worldPos, normal);
@@ -659,7 +665,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
         //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum.xyz), 1.0));
         // ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(dot(Surface.N, SunDirection)) * baseColor.xyz * sunShadow * SunIntensity, 1.0));
-        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow, 1.0));
+        float w = (dot(SunDirection, normal) >= 0) ? 1 : 0;
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow * w, 1.0));
 
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);

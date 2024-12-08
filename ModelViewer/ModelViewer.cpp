@@ -223,7 +223,8 @@ void ModelViewer::Startup( void )
 #if SCENE == 0
         m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
 #elif SCENE == 1
-        m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+        m_ModelInst = Renderer::LoadModel(L"Models/SonicNew/SonicNew.gltf", forceRebuild);
 #elif SCENE == 2
         m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
 #elif SCENE == 3

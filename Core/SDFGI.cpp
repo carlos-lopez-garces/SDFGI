@@ -12,6 +12,7 @@
 #include "../Model/Renderer.h"
 #include <random>
 
+#include "CompiledShaders/SDFGIAtlasBorderUpdateCS.h"
 #include "CompiledShaders/SDFGIProbeVizVS.h"
 #include "CompiledShaders/SDFGIProbeVizPS.h"
 #include "CompiledShaders/SDFGIProbeVizGS.h"
@@ -316,6 +317,27 @@ namespace SDFGI {
         probeUpdatePSO.SetRootSignature(probeUpdateRS);
         probeUpdatePSO.SetComputeShader(g_pSDFGIProbeUpdateCS, sizeof(g_pSDFGIProbeUpdateCS));
         probeUpdatePSO.Finalize();
+
+
+
+        atlasBorderRS.Reset(3, 1);
+
+        // Irradiance atlas.
+        atlasBorderRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, /*register=u*/0, 1);
+
+        // Depth atlas.
+        atlasBorderRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, /*register=u*/1, 1);
+
+        // Probe grid info.
+        atlasBorderRS[2].InitAsConstantBuffer(/*register=b*/0, D3D12_SHADER_VISIBILITY_ALL);
+
+        atlasBorderRS.InitStaticSampler(0, SamplerLinearClampDesc, D3D12_SHADER_VISIBILITY_ALL);
+
+        atlasBorderRS.Finalize(L"SDFGI Atlas Border Compute Root Signature");
+
+        atlasBorderPSO.SetRootSignature(atlasBorderRS);
+        atlasBorderPSO.SetComputeShader(g_pSDFGIAtlasBorderUpdateCS, sizeof(g_pSDFGIAtlasBorderUpdateCS));
+        atlasBorderPSO.Finalize();
     }
 
 
@@ -338,19 +360,6 @@ namespace SDFGI {
         }
 
         ComputeContext& computeContext = context.GetComputeContext();
-
-        ScopedTimer _prof(L"Capture Irradiance and Depth", context);
-
-        computeContext.SetPipelineState(probeUpdatePSO);
-        computeContext.SetRootSignature(probeUpdateRS);
-
-        computeContext.SetBufferSRV(0, probeBuffer);
-        computeContext.SetDynamicDescriptor(1, 0, irradianceAtlas.GetUAV());
-        computeContext.SetDynamicDescriptor(2, 0, depthAtlas.GetUAV());
-        if (useCubemaps) computeContext.SetDynamicDescriptor(3, 0, probeCubemapArray.GetSRV());
-        computeContext.SetDynamicDescriptor(5, 0, Renderer::m_VoxelAlbedo.GetUAV()); 
-        computeContext.SetDynamicDescriptor(6, 0, Renderer::m_FinalSDFOutput.GetUAV()); 
-
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -369,61 +378,95 @@ namespace SDFGI {
             float MaxWorldDepth;                        // 4
 
             BOOL SampleSDF;
-            float Hysteresis;
         } probeData;
+        {
+            probeData.ProbeCount = probeGrid.probes.size();
+            probeData.GridSize = Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
+            probeData.ProbeSpacing = Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]);
+            probeData.SceneMinBounds = probeGrid.sceneBounds.GetMin();
+            probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
+            probeData.GutterSize = gutterSize;
+            probeData.MaxWorldDepth = probeGrid.sceneBounds.GetMaxDistance();
+            probeData.SampleSDF = !useCubemaps;
+        }
 
-        __declspec(align(16)) struct SDFData {
-            // world space texture bounds
-            float xmin;
-            float xmax;
-            float ymin;
-            float ymax;
-            float zmin;
-            float zmax;
-            // texture resolution
-            float sdfResolution;
-        } sdfData;
+        // Main Pass
+        {
+            ScopedTimer _prof(L"Capture Irradiance and Depth", context);
 
-        float rotation_scaler = 0.001f;
-        XMMATRIX randomRotation = GenerateRandomRotationMatrix(rotation_scaler);
-        XMStoreFloat4x4(&probeData.RandomRotation, randomRotation);
-        probeData.ProbeCount = probeGrid.probes.size();
-        probeData.GridSize = Vector3(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
-        probeData.ProbeSpacing = Vector3(probeGrid.probeSpacing[0], probeGrid.probeSpacing[1], probeGrid.probeSpacing[2]);
-        probeData.SceneMinBounds = probeGrid.sceneBounds.GetMin();
-        probeData.ProbeAtlasBlockResolution = probeAtlasBlockResolution;
-        probeData.GutterSize = gutterSize;
-        probeData.MaxWorldDepth = maxVisibilityDistance;
-        probeData.SampleSDF = !useCubemaps;
-        probeData.Hysteresis = hysteresis;
+            computeContext.SetPipelineState(probeUpdatePSO);
+            computeContext.SetRootSignature(probeUpdateRS);
 
-        sdfData.xmin = -2000; 
-        sdfData.xmax = 2000;
-        sdfData.ymin = -2000;
-        sdfData.ymax = 2000;
-        sdfData.zmin = -2000;
-        sdfData.zmax = 2000;
-        sdfData.sdfResolution = SDF_TEXTURE_RESOLUTION; 
+            computeContext.SetBufferSRV(0, probeBuffer);
+            computeContext.SetDynamicDescriptor(1, 0, irradianceAtlas.GetUAV());
+            computeContext.SetDynamicDescriptor(2, 0, depthAtlas.GetUAV());
+            if (useCubemaps) computeContext.SetDynamicDescriptor(3, 0, probeCubemapArray.GetSRV());
+            computeContext.SetDynamicDescriptor(5, 0, Renderer::m_VoxelAlbedo.GetUAV());
+            computeContext.SetDynamicDescriptor(6, 0, Renderer::m_FinalSDFOutput.GetUAV());
 
-        computeContext.SetDynamicConstantBufferView(4, sizeof(ProbeData), &probeData);
-        computeContext.SetDynamicConstantBufferView(7, sizeof(SDFData), &sdfData); 
 
-        // New: One thread per probe atlas contribution texel
-        // CTA size = 8 x 8
-        // Group Count = probeCount.x, ..., probeCount.z
-        // Thus, this line stays the same!
-        
-        // Old: One thread per probe.
-        computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
+            __declspec(align(16)) struct SDFData {
+                // world space texture bounds
+                float xmin;
+                float xmax;
+                float ymin;
+                float ymax;
+                float zmin;
+                float zmax;
+                // texture resolution
+                float sdfResolution;
+            } sdfData;
+
+            //float rotation_scaler = 0.001f;
+            //XMMATRIX randomRotation = GenerateRandomRotationMatrix(rotation_scaler);
+            //XMStoreFloat4x4(&probeData.RandomRotation, randomRotation);
+
+
+            sdfData.xmin = -2000;
+            sdfData.xmax = 2000;
+            sdfData.ymin = -2000;
+            sdfData.ymax = 2000;
+            sdfData.zmin = -2000;
+            sdfData.zmax = 2000;
+            sdfData.sdfResolution = SDF_TEXTURE_RESOLUTION;
+
+            computeContext.SetDynamicConstantBufferView(4, sizeof(ProbeData), &probeData);
+            computeContext.SetDynamicConstantBufferView(7, sizeof(SDFData), &sdfData);
+
+            // New: One thread per probe atlas contribution texel
+            // CTA size = 8 x 8
+            // Group Count = probeCount.x, ..., probeCount.z
+            // Thus, this line stays the same!
+
+            // Old: One thread per probe.
+            computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
+            computeContext.Flush();
+
+        }
+
+        {
+            ScopedTimer _prof(L"Fill in atlas borders", context);
+            //ComputePSO atlasBorderPSO;
+            //RootSignature atlasBorderRS;
+
+            computeContext.SetPipelineState(atlasBorderPSO);
+            computeContext.SetRootSignature(atlasBorderRS);
+
+            computeContext.SetDynamicDescriptor(0, 0, irradianceAtlas.GetUAV());
+            computeContext.SetDynamicDescriptor(1, 0, depthAtlas.GetUAV());
+
+            computeContext.SetDynamicConstantBufferView(2, sizeof(ProbeData), &probeData);
+
+            computeContext.Dispatch(probeGrid.probeCount[0], probeGrid.probeCount[1], probeGrid.probeCount[2]);
+        }
 
         computeContext.TransitionResource(irradianceAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
         computeContext.TransitionResource(depthAtlas, D3D12_RESOURCE_STATE_GENERIC_READ);
-
         uint32_t DestCount = 1;
         uint32_t SourceCounts[] = { 1 };
         D3D12_CPU_DESCRIPTOR_HANDLE SourceTextures[] =
         {
-            irradianceAtlas.GetSRV() 
+            irradianceAtlas.GetSRV()
         };
         g_Device->CopyDescriptors(1, &irradianceAtlasSRVHandle, &DestCount, DestCount, SourceTextures, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 

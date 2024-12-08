@@ -77,6 +77,10 @@ namespace SDFGI
     bool renderProbViz = false;
     BOOL showGIOnly = false;
     float giIntensity = 1.0f;
+    BOOL renderIrradianceAtlas = false;
+    BOOL renderVisibilityAtlas = false;
+    int renderAtlasZIndex = 0;
+    int maxZIndex = 0;
 
     BOOL useCubemaps;
 

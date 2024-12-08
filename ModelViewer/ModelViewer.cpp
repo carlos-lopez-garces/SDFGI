@@ -106,6 +106,8 @@ private:
     bool showDIOnly = false;
     bool showGIOnly = false;
     float giIntensity = 1.0f;
+    bool showIrradianceAtlas = false;
+    bool showVisibilityAtlas = false;
 };
 
 CREATE_APPLICATION( ModelViewer )
@@ -740,6 +742,12 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     // ImGUI doesn't accept BOOL, only bool.
     mp_SDFGIManager->showGIOnly = showGIOnly;
     ImGui::Checkbox("Show Probes", &mp_SDFGIManager->renderProbViz);
+    static const char* envOptions[]{"Show Environment Map","Show Irr. Atlas","Show Vis. Atlas"};
+    static int envMode = 0;
+    ImGui::Combo("Environment", &envMode, envOptions, IM_ARRAYSIZE(envOptions));
+    mp_SDFGIManager->renderIrradianceAtlas = envMode == 1;
+    mp_SDFGIManager->renderVisibilityAtlas = envMode == 2;
+    ImGui::SliderInt("Atlas Slice", &mp_SDFGIManager->renderAtlasZIndex, 0.0, mp_SDFGIManager->maxZIndex);
     // ImGui::SliderFloat("Max Visibility Distance", &mp_SDFGIManager->maxVisibilityDistance, 0.0f, 1000.0f);
 
     ImGui::End();

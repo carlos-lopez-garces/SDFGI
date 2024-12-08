@@ -147,6 +147,7 @@ namespace SDFGI {
         uint32_t height = probeGrid.probeCount[1];
         uint32_t depth = probeGrid.probeCount[2];
         probeCount = width * height * depth;
+        maxZIndex = depth;
 
         uint32_t atlasWidth = (width * probeAtlasBlockResolution) + (width + 1) * gutterSize;
         uint32_t atlasHeight = (height * probeAtlasBlockResolution) + (height + 1) * gutterSize;
@@ -464,8 +465,15 @@ namespace SDFGI {
 
         context.SetDynamicDescriptor(0, 0, irradianceAtlas.GetSRV());
         context.SetDynamicDescriptor(1, 0, depthAtlas.GetSRV());
-        float maxWorldDepth = probeGrid.sceneBounds.GetMaxDistance();
-        context.SetDynamicConstantBufferView(2, sizeof(float), &maxWorldDepth);
+        __declspec(align(16)) struct RenderConstants {
+          float maxWorldDepth;
+          BOOL renderVisibilityAtlas;
+          int zIndex;
+        } renderConstants;
+        renderConstants.maxWorldDepth = probeGrid.sceneBounds.GetMaxDistance();
+        renderConstants.renderVisibilityAtlas = renderVisibilityAtlas;
+        renderConstants.zIndex = std::min(renderAtlasZIndex, maxZIndex);
+        context.SetDynamicConstantBufferView(2, sizeof(RenderConstants), &renderConstants);
 
         context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
         context.Draw(4);
@@ -666,7 +674,9 @@ namespace SDFGI {
         }
 
         // Render to a fullscreen quad either the probe atlas or the cubemap of a single probe.
-        RenderProbeAtlasViz(context, camera);
+        if (renderIrradianceAtlas || renderVisibilityAtlas) {
+            RenderProbeAtlasViz(context, camera);
+        }
 
         if (useCubemaps) {
             // RenderCubemapViz(context, camera);

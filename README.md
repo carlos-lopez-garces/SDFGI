@@ -1,4 +1,5 @@
-![main](https://github.com/user-attachments/assets/afa5771b-dc95-4264-afad-b36e7dd992c8)
+![main](https://github.com/user-attachments/assets/fa97122a-c69b-46ba-9d10-a214525008a4)
+
 # Signed Distance Field Global Illumination (SDFGI)
 
 

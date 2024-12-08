@@ -42,7 +42,7 @@
 
 #define RENDER_DIRECT_ONLY 0
 //0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street
-#define SCENE 0
+#define SCENE 2
 // #define LEGACY_RENDERER
 #include <string>
 
@@ -222,7 +222,8 @@ void ModelViewer::Startup( void )
 #if SCENE == 0
         m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
 #elif SCENE == 1
-        m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+        //m_ModelInst = Renderer::LoadModel(L"Models/CornellWithSonicThickWalls/CornellWithSonicThickWalls.gltf", forceRebuild);
+        m_ModelInst = Renderer::LoadModel(L"Models/SonicNew/SonicNew.gltf", forceRebuild);
 #elif SCENE == 2
         m_ModelInst = Renderer::LoadModel(L"Models/CornellSphere/CornellSphere.gltf", forceRebuild);
 #elif SCENE == 3

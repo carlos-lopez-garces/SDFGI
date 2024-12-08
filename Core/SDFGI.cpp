@@ -23,7 +23,7 @@
 #include "CompiledShaders/SDFGIProbeCubemapDownsampleCS.h"
 
 #define PROBE_IDX_VIZ 1
-#define SCENE_IS_CORNELL_BOX 0
+#define SCENE_IS_CORNELL_BOX 1
 
 using namespace Graphics;
 using namespace DirectX;
@@ -329,7 +329,7 @@ namespace SDFGI {
             depthAtlasSRVHandle = externalHeap->Alloc(1);
         }
 
-        if (updateTimer > 3) {
+        if (updateTimer > 5) {
             updateTimer = 0;
         }
         else {

@@ -114,8 +114,8 @@ void Renderer::Initialize(void)
 
     SamplerDesc DefaultSamplerDesc;
     DefaultSamplerDesc.MaxAnisotropy = 8;
-    //DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+    //DefaultSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerDesc CubeMapSamplerDesc = DefaultSamplerDesc;
     //CubeMapSamplerDesc.MaxLOD = 6.0f;
 

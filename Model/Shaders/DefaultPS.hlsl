@@ -436,8 +436,8 @@ float3 TestGI(
     // alpha is how far from the floor(currentVertex) position. on [0, 1] for each axis.
     float3 alpha = clamp((fragmentWorldPos - baseProbePos) / ProbeSpacing, float3(0, 0, 0), float3(1, 1, 1));
 
-    //for (int i = 0; i < 8; ++i) 
-    int i = 6;
+    for (int i = 0; i < 8; ++i) 
+    //int i = 0;
     //int i = 3;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
@@ -449,7 +449,7 @@ float3 TestGI(
         float normalDotDir = dot(normal, dirToProbe);
         weights[i] = 1.0;
         if (normalDotDir <= 0.0) {
-            //weights[i] = 0.0;
+            weights[i] = 0.0;
             //continue;
         }
         //if (length(dirToProbe) <= 0.5) {
@@ -457,7 +457,7 @@ float3 TestGI(
         //}
         int3  offset = int3(i, i >> 1, i >> 2) & int3(1, 1, 1);
         float3 trilinear = lerp(1.0 - alpha, alpha, offset);
-        //weights[i] *= trilinear.x * trilinear.y * trilinear.z;
+        weights[i] *= trilinear.x * trilinear.y * trilinear.z;
         resultIrradiance += weights[i] * IrradianceAtlas.SampleLevel(defaultSampler, float3(irradianceUV, slice_idx), 0);
     }
 
@@ -524,10 +524,10 @@ float3 SampleIrradiance(
         // Smooth backface test
         {
             float3 trueDirectionToProbe = normalize(probePos - wsPosition);
-            //weight *= pow(max(0.0001, (dot(trueDirectionToProbe, normal) + 1.0) * 0.5), 2) + 0.2;
-            if (dot(trueDirectionToProbe, normal) <= 0) {
-                weight = 0;
-            }
+            weight *= pow(max(0.0001, (dot(trueDirectionToProbe, normal) + 1.0) * 0.5), 2) + 0.2;
+            //if (dot(trueDirectionToProbe, normal) < 0) {
+            //    weight = 0;
+            //}
         }
 
         // Moment visibility test
@@ -615,8 +615,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = TestGI(vsOutput.worldPos, normal);
+        uh = SampleIrradiance(vsOutput.worldPos, normal);
+        //uh = TestGI(vsOutput.worldPos, normal);
         // uh = SampleIrradiance2(vsOutput.worldPos, normal);
         // uh = sample_irradiance(vsOutput.worldPos, normal, ViewerPos);
         //uh = TestGI(vsOutput.worldPos, normal);

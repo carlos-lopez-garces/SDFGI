@@ -149,6 +149,9 @@ namespace SDFGI
     // Probe update: capture irradiance and depth.
     ComputePSO probeUpdatePSO;
     RootSignature probeUpdateRS;
+
+    ComputePSO atlasBorderPSO;
+    RootSignature atlasBorderRS;
     void InitializeProbeUpdateShader();
     void UpdateProbes(GraphicsContext& context);
 

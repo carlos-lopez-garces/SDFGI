@@ -292,7 +292,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
     float y = groupThreadID.y;
 
     float4 pastFrameIrradiance = IrradianceAtlas[probeTexCoord];
-    IrradianceAtlas[probeTexCoord] = float4(0, 0, 0, 0);
+    //IrradianceAtlas[probeTexCoord] = float4(0, 0, 0, 0);
     for (int s = 0; s < sample_count; s++) {
         float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
         //float2 inputToDecode = float2(((float)x + 0.5) / ProbeAtlasBlockResolution, ((float)y + 0.5) / ProbeAtlasBlockResolution);
@@ -320,7 +320,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
 
     IrradianceAtlas[probeTexCoord] = lerp(IrradianceAtlas[probeTexCoord], pastFrameIrradiance, Hysteresis);
 
-    IrradianceAtlas[probeTexCoord] = float4(x / 8.0, y / 8.0, 0, 1);
+    //IrradianceAtlas[probeTexCoord] = float4(x / 8.0, y / 8.0, 0, 1);
 }
 
 //

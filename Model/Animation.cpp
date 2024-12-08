@@ -96,10 +96,6 @@ void ModelInstance::UpdateAnimations(float deltaTime)
     {
         AnimationState& anim = m_AnimState[i];
 
-#if ANIMATION 1
-        anim.state = AnimationState::kLooping; // Mikey: this forces any animation to play and loop.  
-#endif
-
         if (anim.state == AnimationState::kStopped)
             continue;
 

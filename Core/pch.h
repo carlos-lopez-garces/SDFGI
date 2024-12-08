@@ -56,6 +56,7 @@
 
 // Set SDF Texture Resolution
 // WARNING: Have only tested 128 and 512
+// TIP: Set this to 128 if you're running the SDF every frame (i.e. in an animated scene)
 #define SDF_TEXTURE_RESOLUTION 512
 
 #include <Windows.h>

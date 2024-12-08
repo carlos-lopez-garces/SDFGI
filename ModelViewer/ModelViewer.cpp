@@ -41,11 +41,10 @@
 #include "Settings.h"
 
 #define RENDER_DIRECT_ONLY 0
-//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street
+//0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street, 5- SponzaAnimated
 #define SCENE 0
 // #define LEGACY_RENDERER
 #include <string>
-
 
 using namespace GameCore;
 using namespace Math;
@@ -63,6 +62,11 @@ namespace GameCore
 namespace Graphics
 {
     extern ID3D12Device* g_Device;
+}
+
+namespace SDFGI
+{
+    bool runSDFonce = false; 
 }
 
 class ModelViewer : public GameCore::IGameApp
@@ -192,6 +196,7 @@ void ModelViewer::Startup( void )
     PostEffects::EnableHDR = false;
     PostEffects::EnableAdaptation = false;
     SSAO::Enable = false;
+    bool runSDFonce = true; 
 
     Renderer::Initialize();
 
@@ -222,6 +227,10 @@ void ModelViewer::Startup( void )
         m_ModelInst = Renderer::LoadModel(L"Models/BreakfastRoom/BreakfastRoom.gltf", forceRebuild); 
 #elif SCENE == 4
         m_ModelInst = Renderer::LoadModel(L"Models/JapaneseStreet/JapaneseStreet.gltf", forceRebuild);
+#elif SCENE == 5
+        m_ModelInst = Renderer::LoadModel(L"Models/SponzaAnimated/SponzaAnimated.gltf", forceRebuild); 
+        m_ModelInst.LoopAllAnimations(); 
+        SDFGI::runSDFonce = false; 
 #else
         m_ModelInst = Renderer::LoadModel(L"Models/BoxAndPlane/BoxAndPlane.gltf", forceRebuild);
 #endif
@@ -263,6 +272,8 @@ void ModelViewer::Startup( void )
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #elif SCENE == 3
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
+#elif SCENE == 5
+    SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(-0.289f, 0.904f, 0.314f), true);
 #else
     SunDirection.Initialize("SunDirection", "Sun", "Sun Direction", "Direction of the sun", Float3(0.235f, 0.217f, -0.948f), true);
 #endif
@@ -660,7 +671,7 @@ void ModelViewer::RenderScene( void )
     else
     {
         NonLegacyRenderShadowMap(gfxContext, m_Camera, viewport, scissor);
-        NonLegacyRenderSDF(gfxContext, /*runSDFOnce=*/true);
+        NonLegacyRenderSDF(gfxContext, /*runSDFOnce=*/SDFGI::runSDFonce);
         mp_SDFGIManager->Update(gfxContext, m_Camera, viewport, scissor);
 
         if (rayMarchDebug) {

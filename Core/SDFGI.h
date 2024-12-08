@@ -76,6 +76,7 @@ namespace SDFGI
     float maxVisibilityDistance = 100;
     bool renderProbViz = false;
     BOOL showGIOnly = false;
+    float giIntensity = 1.0f;
 
     BOOL useCubemaps;
 

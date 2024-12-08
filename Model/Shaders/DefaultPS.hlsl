@@ -70,7 +70,7 @@ cbuffer SDFGIConstants : register(b2) {
 
     bool UseAtlas;
     bool ShowGIOnly;
-    float Pad4;
+    float GIintensity;
     float Pad5;
 };
 
@@ -635,7 +635,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     //colorAccum += 
     // TODO: Shade each light using Forward+ tiles
     float3 bruv = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
-    bruv += uh * baseColor.rgb;
+    bruv += uh * baseColor.rgb * GIintensity;
     
     if (voxelPass) {
         // TODO: These are hardcoded values. It's assumed that the viewport size is 

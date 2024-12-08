@@ -105,11 +105,12 @@ private:
     bool showDIPlusGI = true;
     bool showDIOnly = false;
     bool showGIOnly = false;
+    float giIntensity = 1.0f;
 };
 
 CREATE_APPLICATION( ModelViewer )
 
-ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
+ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 0.f, 0.0f, 16.0f, 0.1f);
 // For sphere scene.
 // NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -1.5f, -100.0f, 100.0f, 0.1f );
 // For Sonic scene.
@@ -726,6 +727,8 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     // {
     //     g_SunLightIntensity = sunLightIntensity;
     // }
+    ImGui::SliderFloat("GI Intensity", &giIntensity, 0.0f, 1.0f, "%.2f");
+    mp_SDFGIManager->giIntensity = pow(giIntensity, 2.0f);
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
     ImGui::Checkbox("Show Voxelized SDF Scene", &rayMarchDebug);
     static const char* shadingOptions[]{"Show DI + GI","Show DI Only","Show GI Only"};

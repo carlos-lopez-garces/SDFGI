@@ -74,6 +74,8 @@ namespace SDFGI
 
     float hysteresis = 0.0f;
     float maxVisibilityDistance = 100;
+    bool renderProbViz = false;
+    BOOL showGIOnly = false;
 
     BOOL useCubemaps;
 

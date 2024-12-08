@@ -101,6 +101,10 @@ private:
     ShadowCamera m_SunShadowCamera;
 
     SDFGI::SDFGIManager *mp_SDFGIManager;
+    bool rayMarchDebug = false;
+    bool showDIPlusGI = true;
+    bool showDIOnly = false;
+    bool showGIOnly = false;
 };
 
 CREATE_APPLICATION( ModelViewer )
@@ -641,9 +645,9 @@ void ModelViewer::RenderScene( void )
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Render");
 
     // ray march debug toggle
-    static bool rayMarchDebug = false;
-    if (GameInput::IsFirstPressed(GameInput::kKey_0))
-        rayMarchDebug = !rayMarchDebug;
+    // static bool rayMarchDebug = false;
+    // if (GameInput::IsFirstPressed(GameInput::kKey_0))
+    //     rayMarchDebug = !rayMarchDebug;
 
     uint32_t FrameIndex = TemporalEffects::GetFrameIndexMod2();
     const D3D12_VIEWPORT& viewport = m_MainViewport;
@@ -669,7 +673,7 @@ void ModelViewer::RenderScene( void )
 #if RENDER_DIRECT_ONLY == 1
             NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/false);
 #else
-            NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/true);
+            NonLegacyRenderScene(gfxContext, m_Camera, viewport, scissor, /*renderShadows=*/true, /*useSDFGI=*/!showDIOnly);
 #endif
         }
     }
@@ -707,6 +711,8 @@ void ModelViewer::RenderScene( void )
 
 void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
 #if UI_ENABLE
+    ImGui::Begin("SDFGI Settings");
+
     Matrix4 viewMat = m_Camera.GetViewMatrix();
     Float4 r0(viewMat.GetX().GetX(), viewMat.GetX().GetY(), viewMat.GetX().GetZ(), viewMat.GetX().GetW());
     Float4 r1(viewMat.GetY().GetX(), viewMat.GetY().GetY(), viewMat.GetY().GetZ(), viewMat.GetY().GetW());
@@ -716,10 +722,49 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     SunDirection.Update(viewMatrix);
 
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
-    ImGui::SliderFloat("Max Visibility Distance", &mp_SDFGIManager->maxVisibilityDistance, 0.0f, 1000.0f);
-    
+    ImGui::Checkbox("Show Voxelized SDF Scene", &rayMarchDebug);
+    static const char* shadingOptions[]{"Show DI + GI","Show DI Only","Show GI Only"};
+    static int shadingMode = 0;
+    ImGui::Combo("Shading", &shadingMode, shadingOptions, IM_ARRAYSIZE(shadingOptions));
+    showDIPlusGI = shadingMode == 0;
+    showDIOnly = shadingMode == 1;
+    showGIOnly = shadingMode == 2;
+    // ImGUI doesn't accept BOOL, only bool.
+    mp_SDFGIManager->showGIOnly = showGIOnly;
+    ImGui::Checkbox("Show Probes", &mp_SDFGIManager->renderProbViz);
+    // ImGui::SliderFloat("Max Visibility Distance", &mp_SDFGIManager->maxVisibilityDistance, 0.0f, 1000.0f);
+
+    ImGui::End();
+
     ImGui::Render();
     gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer()); 
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), gfxContext.GetCommandList());
 #endif
 }
+
+// void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
+// #if UI_ENABLE
+//     ImGui::Begin("SDFGI Settings");
+//     Matrix4 viewMat = m_Camera.GetViewMatrix();
+//     Float4 r0(viewMat.GetX().GetX(), viewMat.GetX().GetY(), viewMat.GetX().GetZ(), viewMat.GetX().GetW());
+//     Float4 r1(viewMat.GetY().GetX(), viewMat.GetY().GetY(), viewMat.GetY().GetZ(), viewMat.GetY().GetW());
+//     Float4 r2(viewMat.GetZ().GetX(), viewMat.GetZ().GetY(), viewMat.GetZ().GetZ(), viewMat.GetZ().GetW());
+//     Float4 r3(viewMat.GetW().GetX(), viewMat.GetW().GetY(), viewMat.GetW().GetZ(), viewMat.GetW().GetW());
+//     Float4x4 viewMatrix(r0, r1, r2, r3);
+//     SunDirection.Update(viewMatrix);
+//     // ImGui::SliderFloat("Sun Intensity", &m_SunIntensity, 1, 1.5);
+//     ImGui::SliderFloat("GI Intensity", &mp_SDFGIManager->giIntensity, 0, 0.038);
+//     // ImGui::SliderFloat("Baked GI Intensity", &mp_SDFGIManager->bakedGIIntensity, 0, 1);
+//     // ImGui::SliderInt("Baked Sun Shadow", &mp_SDFGIManager->bakedSunShadow, 0, 100);
+//     ImGui::SliderInt("Probe Offset X", &mp_SDFGIManager->probeOffsetX, -100, 100);
+//     ImGui::SliderInt("Probe Offset Y", &mp_SDFGIManager->probeOffsetY, -100, 100);
+//     ImGui::SliderInt("Probe Offset Z", &mp_SDFGIManager->probeOffsetZ, -100, 100);
+//     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
+//     ImGui::Checkbox("Render Probe Viz", &mp_SDFGIManager->renderProbViz);
+//     ImGui::End();
+
+//     ImGui::Render();
+//     gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer()); 
+//     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), gfxContext.GetCommandList());
+// #endif
+// }

@@ -69,7 +69,7 @@ cbuffer SDFGIConstants : register(b2) {
     float AtlasHeight;
 
     bool UseAtlas;
-    float Pad3;
+    bool ShowGIOnly;
     float Pad4;
     float Pad5;
 };
@@ -676,7 +676,11 @@ float4 main(VSOutput vsOutput) : SV_Target0
     if (UseAtlas) {
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
-        return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
+        if (ShowGIOnly) {
+            return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
+        }  else {
+            return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
+        }
     }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

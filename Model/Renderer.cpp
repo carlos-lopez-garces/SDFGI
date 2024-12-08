@@ -1143,10 +1143,10 @@ void MeshSorter::RenderMeshes(
           float AtlasWidth;                       // 4
           float AtlasHeight;                      // 4
 
-          bool UseAtlas;                          // 4
+          BOOL UseAtlas;                          // 4
+          BOOL ShowGIOnly;
           float MaxDistance;                             // 4
           float Pad1;                             // 4
-          float Pad2;                             // 4
       } sdfgiConstants;
 
       context.SetDescriptorTable(Renderer::kSDFGIIrradianceAtlasSRV, mp_SDFGIManager->GetIrradianceAtlasDescriptorHandle());
@@ -1160,7 +1160,8 @@ void MeshSorter::RenderMeshes(
       sdfgiConstants.AtlasWidth = sdfgiProbeData.AtlasWidth;
       sdfgiConstants.AtlasHeight = sdfgiProbeData.AtlasHeight;
       sdfgiConstants.UseAtlas = true;
-      sdfgiConstants.MaxDistance = mp_SDFGIManager->maxVisibilityDistance;
+      sdfgiConstants.ShowGIOnly = mp_SDFGIManager->showGIOnly;
+    //   sdfgiConstants.MaxDistance = mp_SDFGIManager->maxVisibilityDistance;
       context.SetDynamicConstantBufferView(Renderer::kSDFGICBV, sizeof(sdfgiConstants), &sdfgiConstants);
   }
 

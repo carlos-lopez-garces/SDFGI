@@ -721,6 +721,11 @@ void ModelViewer::RenderUI( class GraphicsContext& gfxContext ) {
     Float4x4 viewMatrix(r0, r1, r2, r3);
     SunDirection.Update(viewMatrix);
 
+    // float sunLightIntensity = g_SunLightIntensity;
+    // if (ImGui::SliderFloat("Sun Light Intensity", &sunLightIntensity, 0.0f, 16.0f, "%.2f"))
+    // {
+    //     g_SunLightIntensity = sunLightIntensity;
+    // }
     ImGui::SliderFloat("Hysteresis", &mp_SDFGIManager->hysteresis, 0.0f, 1.0f);
     ImGui::Checkbox("Show Voxelized SDF Scene", &rayMarchDebug);
     static const char* shadingOptions[]{"Show DI + GI","Show DI Only","Show GI Only"};

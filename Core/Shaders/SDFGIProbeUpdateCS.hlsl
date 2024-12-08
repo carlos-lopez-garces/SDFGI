@@ -115,7 +115,7 @@ float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 wor
             }
             else {
                 worldHitPos = TextureSpaceToWorldSpace(eye + depth * marchingDirection);
-                return UnpackRGBA8(AlbedoTex[hit]) * computeFalloff(depth - start, 0.15f);
+                return UnpackRGBA8(AlbedoTex[hit]) * computeFalloff(depth - start, 0.5f);
             }
         }
         depth += dist;
@@ -271,19 +271,20 @@ static const float2 offsets[36] = {
 
 // --- Shader Start ---
 
-[numthreads(8, 8, 1)]
+[numthreads(9, 9, 1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID) {
     //Each thread is a texel in the atlas
-    uint probeIndex = (dispatchThreadID.x / 8)
-                + (dispatchThreadID.y / 8) * GridSize.x
-                + dispatchThreadID.z * GridSize.x * GridSize.y;
+    int bruh = 9;
+    uint probeIndex = (dispatchThreadID.x / bruh)
+        + (dispatchThreadID.y / bruh) * GridSize.x
+        + dispatchThreadID.z * GridSize.x * GridSize.y;
     if (probeIndex >= ProbeCount) return;
 
     float3 probePosition = ProbePositions[probeIndex].xyz;
 
     uint3 probeTexCoord = uint3(GutterSize, GutterSize, 0) + uint3(
-        (dispatchThreadID.x / 8) * (GutterSize),
-        (dispatchThreadID.y / 8) * (GutterSize),
+        (dispatchThreadID.x / bruh) * (GutterSize),
+        (dispatchThreadID.y / bruh) * (GutterSize),
         dispatchThreadID.z
     );
     probeTexCoord += uint3(dispatchThreadID.xy, 0);
@@ -292,26 +293,34 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
 
     float x = groupThreadID.x;
     float y = groupThreadID.y;
-    for (int s = 0; s < sample_count; s++) {
-        float2 inputToDecode = float2(((float)x + 0.5f)  / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
-        //float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
-        inputToDecode *= 2;
-        inputToDecode -= float2(1.0, 1.0);
+    //for (int s = 0; s < sample_count; s++) {
+    float2 offset = float2(x / 8.0, y / 8.0);
+    //float2 offset = float2(0, 0);
 
-        //Expects input in [-1, 1] range
-        float3 texelDirection = oct_decode(inputToDecode);
+    //SPECIAL CASES FOR CORNERS, MIDPOINTS AND CENTER PIXELS!!!
+    //for (int s = 0; s < sample_count; s++)
+    {
+            //float2 inputToDecode = float2(((float)x + 0.5f)  / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
 
-        float3 worldHitPos;
-        float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
-        //IrradianceAtlas[probeTexCoord] += irradianceSample;
+            float2 inputToDecode = float2(((float)x + offset.x)  / ProbeAtlasBlockResolution, ((float)y + offset.y) / ProbeAtlasBlockResolution);
+             //float2 inputToDecode = float2(((float)x)  / ProbeAtlasBlockResolution, ((float)y) / ProbeAtlasBlockResolution);
+            //float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
+            inputToDecode *= 2;
+            inputToDecode -= float2(1.0, 1.0);
 
-        IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
+            //Expects input in [-1, 1] range
+            float3 texelDirection = oct_decode(inputToDecode);
+
+            float3 worldHitPos;
+            float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
+            IrradianceAtlas[probeTexCoord] = irradianceSample;
+
+            //IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
     }
-    IrradianceAtlas[probeTexCoord] /= sample_count;
-    //IrradianceAtlas[probeTexCoord] = float4( x / 8.0, y / 8.0, 0, 1) + float4(0.1,0.1,0.1,0);
-    //IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
+        //IrradianceAtlas[probeTexCoord] /= sample_count;
+        //IrradianceAtlas[probeTexCoord] = float4( x / 8.0, y / 8.0, 0, 1) + float4(0.1,0.1,0.1,0);
+        //IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
 }
-
 
 //
 //void main(uint3 dispatchThreadID : SV_DispatchThreadID) {

@@ -382,12 +382,17 @@ float2 GetUV(float3 direction, uint3 probeIndex) {
     uint3 atlasCoord = 
         uint3(GutterSize, GutterSize, 0) 
         + probeIndex * uint3(ProbeAtlasBlockResolution + GutterSize, ProbeAtlasBlockResolution + GutterSize, 1);
+    //float2 texCoord = atlasCoord.xy;
+    //texCoord += float2(ProbeAtlasBlockResolution * 0.5f, ProbeAtlasBlockResolution * 0.5f);
+    //texCoord += encodedDir * (ProbeAtlasBlockResolution * 0.5f);
+    //texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
+    
     float2 texCoord = atlasCoord.xy;
-    texCoord += float2(ProbeAtlasBlockResolution * 0.5f, ProbeAtlasBlockResolution * 0.5f);
-    texCoord += encodedDir * (ProbeAtlasBlockResolution * 0.5f);
+    texCoord += (encodedDir * 0.5 + float2(0.5, 0.5)) * float2(ProbeAtlasBlockResolution, ProbeAtlasBlockResolution);
     texCoord = texCoord / float2(AtlasWidth, AtlasHeight);
-
     return texCoord;
+    //return texCoord;
+    //return encodedDir * 0.5 + float2(0.5, 0.5);
 }
 
 float3 TestGI(
@@ -430,6 +435,7 @@ float3 TestGI(
     for (int i = 0; i < 8; ++i) 
     //int i = 6;
     //int i = 5;
+    //int i = 0;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
         uint slice_idx = (uint)floor(probeIndices[i].z);
@@ -608,6 +614,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
     // TODO: Shade each light using Forward+ tiles
     float3 bruv = ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
     bruv += uh * baseColor.rgb;
+    //bruv += uh;
     
     if (voxelPass) {
         // TODO: These are hardcoded values. It's assumed that the viewport size is 
@@ -633,8 +640,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
         if (dot(SunDirection, normal) <= 0) {
             w = 0;
         }
-        //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.rgb * sunShadow * w, 1.0));
-        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(normal, 0.0));
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.rgb * sunShadow, 1.0));
+        //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(normal, 0.0));
         //Interesting ...
 
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
@@ -654,7 +661,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
         //return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
-        return float4(uh, 1.0f);
+        //return float4(bruv.rgb, 1.0f);
+        return float4(bruv.rgb, 1.0f);
     }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

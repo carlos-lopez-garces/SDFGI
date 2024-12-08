@@ -429,7 +429,7 @@ float3 TestGI(
 
     for (int i = 0; i < 8; ++i) 
     //int i = 6;
-    //int i = 3;
+    //int i = 5;
     {
         float2 irradianceUV = GetUV(normal, probeIndices[i].xyz);
         uint slice_idx = (uint)floor(probeIndices[i].z);
@@ -628,9 +628,14 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //3. Atomics for VoxelAlbedo
         //4. New DirectLighting Func that literally just multiplies baseColor with dot product and Light color
         //5. Trilinear blending between probes
-
-        //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum.xyz), 1.0));
-        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow, 1.0));
+        //float w = (dot(SunDirection, normal) <= 0) : 0 ? 1;
+        float w = 1.0;
+        if (dot(SunDirection, normal) <= 0) {
+            w = 0;
+        }
+        //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.rgb * sunShadow * w, 1.0));
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(normal, 0.0));
+        //Interesting ...
 
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);
@@ -648,7 +653,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     if (UseAtlas) {
         //return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
         //return float4(GammaCorrection(ACESToneMapping(uh), 2.2f), baseColor.a);
-        return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
+        //return float4(GammaCorrection(ACESToneMapping(bruv), 2.2f), baseColor.a);
+        return float4(uh, 1.0f);
     }
     return float4(GammaCorrection(ACESToneMapping(colorAccum), 2.2f), baseColor.a);
 }

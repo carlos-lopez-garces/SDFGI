@@ -88,7 +88,7 @@ namespace SDFGI
     DescriptorHeap *externalHeap;
 
     uint32_t probeAtlasBlockResolution = 8;
-    uint32_t gutterSize = 1;
+    uint32_t gutterSize = 2;
     ColorBuffer irradianceAtlas;
     ColorBuffer &getIrradianceAtlas() { return irradianceAtlas; }
     D3D12_GPU_DESCRIPTOR_HANDLE GetIrradianceAtlasGpuSRV() const;
@@ -139,6 +139,10 @@ namespace SDFGI
     // Probe update: capture irradiance and depth.
     ComputePSO probeUpdatePSO;
     RootSignature probeUpdateRS;
+
+    ComputePSO atlasBorderPSO;
+    RootSignature atlasBorderRS;
+
     void InitializeProbeUpdateShader();
     void UpdateProbes(GraphicsContext& context);
 

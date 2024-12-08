@@ -190,6 +190,7 @@ float2 sign_not_zero2(in float2 v) {
 }
 
 
+
 float3 oct_decode(float2 o) {
     float3 v = float3(o.x, o.y, 1.0 - abs(o.x) - abs(o.y));
     if (v.z < 0.0) {
@@ -197,6 +198,7 @@ float3 oct_decode(float2 o) {
     }
     return normalize(v);
 }
+
 
 //static const float2 offsets[5] = {
 //    float2(0.15, 0.15),
@@ -286,12 +288,13 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
     );
     probeTexCoord += uint3(dispatchThreadID.xy, 0);
 
-    const uint sample_count = 36;
+    const uint sample_count = 1;
 
     float x = groupThreadID.x;
     float y = groupThreadID.y;
     for (int s = 0; s < sample_count; s++) {
-        float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
+        float2 inputToDecode = float2(((float)x + 0.5f)  / ProbeAtlasBlockResolution, ((float)y + 0.5f) / ProbeAtlasBlockResolution);
+        //float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
         inputToDecode *= 2;
         inputToDecode -= float2(1.0, 1.0);
 
@@ -300,12 +303,12 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
 
         float3 worldHitPos;
         float4 irradianceSample = SampleSDFAlbedo(probePosition, normalize(texelDirection), worldHitPos);
-        IrradianceAtlas[probeTexCoord] += irradianceSample;
+        //IrradianceAtlas[probeTexCoord] += irradianceSample;
 
-        //IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
+        IrradianceAtlas[probeTexCoord] = float4(texelDirection * 0.5 + float3(0.5,0.5,0.5), 1);
     }
     IrradianceAtlas[probeTexCoord] /= sample_count;
-    //IrradianceAtlas[probeTexCoord] = float4( x / 8.0, y / 8.0, 0, 1);
+    //IrradianceAtlas[probeTexCoord] = float4( x / 8.0, y / 8.0, 0, 1) + float4(0.1,0.1,0.1,0);
     //IrradianceAtlas[probeTexCoord] = float4(1, 0, 0, 1);
 }
 

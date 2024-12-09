@@ -26,7 +26,7 @@ Features include:
 * Cube-Map DDGI: A non-dynamic version of DDGI that serves as a reference implementation to compare our final results.
 * Arbitrary glTF loading
 
-## 🖼️ Gallery
+## 🖼️ Gallery: Sponza
 
 <div align="center">
   <br>
@@ -49,6 +49,13 @@ Features include:
   <p><i>Red from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
+## 🖼️ Gallery: San Miguel
+
+![san_miguel](https://github.com/user-attachments/assets/09768a28-4f18-4592-aaeb-1f20239d3c87)
+
+## 🖼️ Gallery: Japanese Street
+
+## 🖼️ Gallery: Cornell Box with Sonic
 
 ## ⚙️ Configuration
 

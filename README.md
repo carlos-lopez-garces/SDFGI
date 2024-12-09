@@ -22,6 +22,7 @@ This is a DirectX12 implementation built on top of a starter project provided my
 Features include: 
 * Probe-based, non-RT global illumination effects, such as interreflections (color "bleeding") and ambient lighting
 * Dynamic lighting: shading of the scene changes in response to changes to the direction of the sun directional light
+* Dynamic objects: animated objects participate in the GI simulation
 * Arbitrary irradiance probe grid placement
 * Cube-Map DDGI: A non-dynamic version of DDGI that serves as a reference implementation to compare our final results.
 * Arbitrary glTF loading
@@ -47,6 +48,13 @@ Features include:
   <img width="717" alt="image" src="https://github.com/user-attachments/assets/add89436-16d9-43c5-8be4-0794c5570235">
   <br>
   <p><i>Red from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
+</div>
+
+<div align="center">
+  <br>
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/2498a5ae-a512-42ce-869a-8aae39ad37c1">
+  <br>
+  <p><i>Dynamic scene: walls reflect animated ball's color.</i></p>
 </div>
 
 ## 🖼️ Gallery: San Miguel

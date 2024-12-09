@@ -452,6 +452,15 @@ float3 TestGI(
             weights[i] = 0.0;
             //continue;
         }
+
+        {
+            //float3 trueDirectionToProbe = normalize(probeWorldPos - fragmentWorldPos);
+            //weights[i] *= pow(max(0.0001, (dot(trueDirectionToProbe, normal) + 1.0) * 0.5), 1) + 0.0;
+            //weights[i] += 0.2;
+            //if (dot(trueDirectionToProbe, normal) < 0) {
+            //    weight = 0;
+            //}
+        }
         //if (length(dirToProbe) <= 0.5) {
         //    weights[i] = 0;
         //}
@@ -615,8 +624,8 @@ float4 main(VSOutput vsOutput) : SV_Target0
     float3 uh = float3(0, 0, 0);
     if (UseAtlas) {
         //indirectIrradiance = SampleIrradiance(vsOutput.worldPos, normal);
-        uh = SampleIrradiance(vsOutput.worldPos, normal);
-        //uh = TestGI(vsOutput.worldPos, normal);
+        //uh = SampleIrradiance(vsOutput.worldPos, normal);
+        uh = TestGI(vsOutput.worldPos, normal);
         // uh = SampleIrradiance2(vsOutput.worldPos, normal);
         // uh = sample_irradiance(vsOutput.worldPos, normal, ViewerPos);
         //uh = TestGI(vsOutput.worldPos, normal);
@@ -666,7 +675,7 @@ float4 main(VSOutput vsOutput) : SV_Target0
         //ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(colorAccum.xyz), 1.0));
         // ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(saturate(dot(Surface.N, SunDirection)) * baseColor.xyz * sunShadow * SunIntensity, 1.0));
         float w = (dot(SunDirection, normal) >= 0) ? 1 : 0;
-        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow * w, 1.0));
+        ImageAtomicRGBA8Avg(SDFGIVoxelAlbedo, voxelCoords, float4(baseColor.xyz * sunShadow * w * SunIntensity, 1.0));
 
         //SDFGIVoxelAlbedo[voxelCoords] = float4(colorAccum.xyz * Surface.NdotV, 1.0);
         //SDFGIVoxelAlbedo[voxelCoords] = float4(baseColor.xyz, 1.0);

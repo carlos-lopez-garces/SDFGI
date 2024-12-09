@@ -98,10 +98,10 @@ float4 UnpackRGBA8(uint packedColor) {
 
 float4 SampleSDFAlbedo(float3 worldPos, float3 marchingDirection, out float3 worldHitPos) {
     float3 eye = WorldSpaceToTextureSpace(worldPos); 
-    float test = 4.0f;
+    float test = 20.0f;
     // Ray March Code
     float start = 0;
-    float depth = start;
+    float depth = start + test;
     for (int i = 0; i < MAX_MARCHING_STEPS; i++) {
         int3 hit = (eye + depth * marchingDirection);
         if (any(hit > int3(sdfResolution - 1, sdfResolution - 1, sdfResolution - 1)) || any(hit < int3(0, 0, 0))) {
@@ -292,10 +292,11 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
     float y = groupThreadID.y;
 
     float4 pastFrameIrradiance = IrradianceAtlas[probeTexCoord];
+    //float2 offset = float2(x / 7.0, y / 7.0);
     //IrradianceAtlas[probeTexCoord] = float4(0, 0, 0, 0);
     for (int s = 0; s < sample_count; s++) {
         float2 inputToDecode = float2(((float)x + offsets[s].x) / ProbeAtlasBlockResolution, ((float)y + offsets[s].y) / ProbeAtlasBlockResolution);
-        //float2 inputToDecode = float2(((float)x + 0.5) / ProbeAtlasBlockResolution, ((float)y + 0.5) / ProbeAtlasBlockResolution);
+        //float2 inputToDecode = float2(((float)x + offset.x) / ProbeAtlasBlockResolution, ((float)y + offset.y) / ProbeAtlasBlockResolution);
         inputToDecode *= 2;
         inputToDecode -= float2(1.0, 1.0);
 
@@ -309,10 +310,13 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV
         // if (distance > MaxWorldDepth) {
         //     // We can limit the reach of SDF albedo query here.
         // } else {
-            IrradianceAtlas[probeTexCoord] += irradianceSample;
+            
         // }
 
         float worldDepth = min(length(worldHitPos - probePosition), MaxWorldDepth);
+        //if (worldDepth > 50) {
+            IrradianceAtlas[probeTexCoord] += irradianceSample;
+        //}
         DepthAtlas[probeTexCoord] = lerp(float2(worldDepth, worldDepth * worldDepth), DepthAtlas[probeTexCoord], Hysteresis);
     }
     

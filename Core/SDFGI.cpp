@@ -55,7 +55,11 @@ namespace SDFGI {
 
         float spacing = 800.0f;
 #else
+//#if SCENE == 5
         float spacing = 100.0f;
+//#else
+        //float spacing = 100.0f;
+//#endif
 #endif
         probeSpacing[0] = spacing;
         probeSpacing[1] = spacing;

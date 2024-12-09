@@ -42,7 +42,7 @@
 
 #define RENDER_DIRECT_ONLY 0
 //0- sponza, 1- sonic, 2- sphere 3- Breakfast Room, 4- Japanese Street, 5- San Miguel, 6- SponzaAnimated
-#define SCENE 0
+#define SCENE 5
 // #define LEGACY_RENDERER
 #include <string>
 

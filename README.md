@@ -246,9 +246,6 @@ The GI contribution is incorporated into the shading/illumination model on top o
 |--------------|--------------|--------------|
 | ![Screenshot 2024-12-08 225309](https://github.com/user-attachments/assets/9f72255d-a9d3-4644-a2c4-ed090866edf2) | ![Screenshot 2024-12-08 225329](https://github.com/user-attachments/assets/4dfb5e07-3d3d-48c7-93e0-ff55e45e07c2) | ![Screenshot 2024-12-08 225257](https://github.com/user-attachments/assets/376fa7e9-9172-43fa-86b5-db7037c43f82) |
 
-
-## Performance Analysis
-
 ## Credits
 
 [Dynamic Diffuse Global Illumination with Ray-Traced Irradiance Fields by Majercik et. al. ](https://jcgt.org/published/0008/02/01/)

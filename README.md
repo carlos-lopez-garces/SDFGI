@@ -385,4 +385,6 @@ As the per-probe texture resolution increases, the frame time grows significantl
 
 [McGuire Computer Graphics Archive](https://casual-effects.com/data/)
 
+[TheRealMJP Sun Direction Widget](https://github.com/TheRealMJP/DXRPathTracer)
+
 

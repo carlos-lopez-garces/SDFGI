@@ -92,7 +92,15 @@ The **GPU Voxelizaiton** step voxelizes the scene by taking advantage of the GPU
 
 #### 3D Jump Flood Algorithm
 
-The **3D Jump Flood Algorithm** step will generate an SDF by running multiple compute passes on an intermediate texture that has an encoded texture coordinate per pixel. After these passes, the final SDF texture is produced. 
+The **3D Jump Flood Algorithm** step will generate an SDF by running multiple compute passes on an intermediate texture that has an encoded texture coordinate per pixel. After these passes, the final SDF texture is produced. Jump Flooding is a GPU flooding algorithm that was originally designed for textures in two-dimensions, and it can specifically be used to create Distance Fields & Voronoi Textures. It has seen many uses for games. For more information, see the [original paper by Rong & Tan.](https://www.comp.nus.edu.sg/~tants/jfa.html)
+
+<div align="center">
+  <br>
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/745619b0-d21f-4d23-8e35-5271964041ce">
+  <br>
+  <p><i>7 Total Compute Passes to compute a 128 * 128 * 128 SDF Texture. Here is the evolution of a single slice of that texture.</i></p>
+</div>
+
 
 #### Ray-Marching the Scene
 

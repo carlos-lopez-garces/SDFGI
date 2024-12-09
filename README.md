@@ -218,7 +218,7 @@ Since lighting may change drastically from frame to frame, flickering may be obs
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/d69301d3-db7b-4737-91f1-a797e16e073c">
+  <img width="300" alt="image" src="https://github.com/user-attachments/assets/d69301d3-db7b-4737-91f1-a797e16e073c">
   <br>
   <p><i>How a probe captures irradiance from its surroundings. Source: Godot.</i></p>
 </div>
@@ -235,10 +235,17 @@ To shade a fragment, we need to combine its color obtained from evaluating the d
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/d877e62a-3d75-4c36-b20d-1947883d7815">
+  <img width="300" alt="image" src="https://github.com/user-attachments/assets/d877e62a-3d75-4c36-b20d-1947883d7815">
   <br>
   <p><i>Interpolating irradiance from probe. Source: Godot.</i></p>
 </div>
+
+The GI contribution is incorporated into the shading/illumination model on top of the direct illumination.
+
+| DI | GI | DI + GI x Albedo |
+|--------------|--------------|--------------|
+| ![Screenshot 2024-12-08 225309](https://github.com/user-attachments/assets/9f72255d-a9d3-4644-a2c4-ed090866edf2) | ![Screenshot 2024-12-08 225329](https://github.com/user-attachments/assets/4dfb5e07-3d3d-48c7-93e0-ff55e45e07c2) | ![Screenshot 2024-12-08 225257](https://github.com/user-attachments/assets/376fa7e9-9172-43fa-86b5-db7037c43f82) |
+
 
 ## Performance Analysis
 

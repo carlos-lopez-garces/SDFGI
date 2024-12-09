@@ -55,6 +55,13 @@ Features include:
 
 ## 🖼️ Gallery: Japanese Street
 
+![image](https://github.com/user-attachments/assets/e81e7b48-f8df-40f8-a2fb-584b6cc6ab50)
+
+
+![image](https://github.com/user-attachments/assets/f2abeb35-8ab2-42ed-96a9-dc63524d8f8c)
+
+
+
 ## 🖼️ Gallery: Cornell Box with Sonic
 
 ## ⚙️ Configuration

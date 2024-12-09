@@ -126,9 +126,19 @@ A rectangular, regularly spaced grid of probes spans the entire bounding box of 
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/f7cc9bad-3e68-4dff-831c-022680cd5d5b">
+  <img width="557" alt="image" src="https://github.com/user-attachments/assets/d00b2781-a20d-4a17-ab37-5d74b63550e6">
   <br>
-  <p><i>Debug visualization of probe positions.</i></p>
+  <p><i>Probes cover the bounding box of the scene.</i></p>
+</div>
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/2adb22ae-9a03-4e10-91e7-516f0f763299"></td>
+      <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/c345fb08-3e84-427d-800a-c4aa9c4bbc04"></td>
+    </tr>
+  </table>
+  <p><i>Each green quad is a probe.</i></p>
 </div>
 
 The grid of probes is determined and built at load-time and its resolution cannot change dynamically at runtime.

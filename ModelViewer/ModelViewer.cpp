@@ -105,7 +105,7 @@ private:
     bool showDIPlusGI = true;
     bool showDIOnly = false;
     bool showGIOnly = false;
-    float giIntensity = 1.0f;
+    float giIntensity = 0.0f;
     bool showIrradianceAtlas = false;
     bool showVisibilityAtlas = false;
     bool runSDFOnce = true;

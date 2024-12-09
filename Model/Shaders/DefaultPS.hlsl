@@ -452,6 +452,9 @@ float3 TestGI(
             weights[i] = 0.0;
             //continue;
         }
+        else {
+            weights[i] += 0.2;
+        }
 
         {
             //float3 trueDirectionToProbe = normalize(probeWorldPos - fragmentWorldPos);
@@ -461,9 +464,6 @@ float3 TestGI(
             //    weight = 0;
             //}
         }
-        //if (length(dirToProbe) <= 0.5) {
-        //    weights[i] = 0;
-        //}
         int3  offset = int3(i, i >> 1, i >> 2) & int3(1, 1, 1);
         float3 trilinear = lerp(1.0 - alpha, alpha, offset);
         weights[i] *= trilinear.x * trilinear.y * trilinear.z;

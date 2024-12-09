@@ -56,7 +56,7 @@ namespace SDFGI {
         float spacing = 800.0f;
 #else
 //#if SCENE == 5
-        float spacing = 100.0f;
+        float spacing = 75.0f;
 //#else
         //float spacing = 100.0f;
 //#endif
@@ -355,7 +355,7 @@ namespace SDFGI {
             depthAtlasSRVHandle = externalHeap->Alloc(1);
         }
 
-        if (updateTimer > 3) {
+        if (updateTimer > 4) {
             updateTimer = 0;
         }
         else {

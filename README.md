@@ -246,6 +246,133 @@ The GI contribution is incorporated into the shading/illumination model on top o
 |--------------|--------------|--------------|
 | ![Screenshot 2024-12-08 225309](https://github.com/user-attachments/assets/9f72255d-a9d3-4644-a2c4-ed090866edf2) | ![Screenshot 2024-12-08 225329](https://github.com/user-attachments/assets/4dfb5e07-3d3d-48c7-93e0-ff55e45e07c2) | ![Screenshot 2024-12-08 225257](https://github.com/user-attachments/assets/376fa7e9-9172-43fa-86b5-db7037c43f82) |
 
+## Performance Analysis
+
+### Analysis: SDF Resolution
+
+Here, we explore the impact of SDF resolutions (128, 256, 512) on FPS and frame time. The analysis is done for the Sponza scene, which is a medium-sized scene.
+
+As the SDF resolution increases from 128 to 512, the FPS drops from 85 to 60, highlighting the increased computational and memory demands at higher resolutions. Frame time grows significantly with resolution, rising from 11.8 ms at 128 to 16.7 ms at 512. This indicates a linear-to-quadratic scaling in workload due to the higher sampling density.
+
+<div align="center">
+  <table>
+    <tr>
+      <th>SDF Resolution</th>
+      <th>FPS</th>
+      <th>Frame Time (ms)</th>
+    </tr>
+    <tr>
+      <td>128</td>
+      <td>85</td>
+      <td>11.8</td>
+    </tr>
+    <tr>
+      <td>256</td>
+      <td>72</td>
+      <td>13.9</td>
+    </tr>
+    <tr>
+      <td>512</td>
+      <td>60</td>
+      <td>16.7</td>
+    </tr>
+  </table>
+</div>
+
+<div align="center">
+  <br>
+  <img width="300" alt="image" src="https://github.com/user-attachments/assets/f2990903-0bd8-4943-a6ba-0b0810d6570e">
+  <br>
+  <p><i>Impact of SDF resolution on framerate.</i></p>
+</div>
+
+### Analysis: Probe Grid Spacing (Probe Density)
+
+Here, we explore the effect of varying probe grid spacings (50, 75, 100, 150, 200) on FPS and frame time. Probe grid spacing determines the density of probes in the scene, influencing both lighting quality and performance. The smaller the spacing, the more probes there are, which increases the size of each atlas slice (to fit more probes) as well as the number of slices. Spacing smaller than 50 leads to out-of-memory errors on our laptops.
+
+As probe grid spacing increases, FPS steadily improves. At 50 spacing, the FPS is 60, while at 200 spacing, the FPS reaches 92. Larger spacings reduce the computational overhead of probe updates and sampling, with frame time dropping from 16.7 ms (50 spacing) to 10.9 ms (200 spacing).
+
+<div align="center">
+  <table>
+    <tr>
+      <th>Probe Grid Spacing</th>
+      <th>FPS</th>
+      <th>Frame Time (ms)</th>
+    </tr>
+    <tr>
+      <td>50</td>
+      <td>60</td>
+      <td>16.7</td>
+    </tr>
+    <tr>
+      <td>75</td>
+      <td>68</td>
+      <td>14.7</td>
+    </tr>
+    <tr>
+      <td>100</td>
+      <td>75</td>
+      <td>13.3</td>
+    </tr>
+    <tr>
+      <td>150</td>
+      <td>85</td>
+      <td>11.8</td>
+    </tr>
+    <tr>
+      <td>200</td>
+      <td>92</td>
+      <td>10.9</td>
+    </tr>
+  </table>
+</div>
+
+<div align="center">
+  <br>
+  <img width="300" alt="image" src="https://github.com/user-attachments/assets/066d91cf-242d-40f9-a448-31d1bb34cbb6">
+  <br>
+  <p><i>Impact of probe density on framerate.</i></p>
+</div>
+
+### Analysis: Per-Probe Atlas Block Resolution
+
+Here, we evaluate the impact of per-probe texture resolutions (8x8, 16x16, 32x32) on FPS and frame time. The per-probe texture resolution determines the coverage of the sphere of directions around the probe for which irradiance is captured; the higher the resolution, the more directions we are able to capture radiance for. 
+
+As the per-probe texture resolution increases, the frame time grows significantly, from 11.8 ms for 8x8 textures to 16.1 ms for 32x32 textures. Higher texture resolutions result in fewer frames per second, with FPS dropping from 85 at 8x8 resolution to 62 at 32x32 resolution. This reflects the added computational cost of handling larger textures.
+
+<div align="center">
+  <table>
+    <tr>
+      <th>Per-Probe Texture Resolution</th>
+      <th>FPS</th>
+      <th>Frame Time (ms)</th>
+    </tr>
+    <tr>
+      <td>8x8</td>
+      <td>85</td>
+      <td>11.8</td>
+    </tr>
+    <tr>
+      <td>16x16</td>
+      <td>75</td>
+      <td>13.3</td>
+    </tr>
+    <tr>
+      <td>32x32</td>
+      <td>62</td>
+      <td>16.1</td>
+    </tr>
+  </table>
+</div>
+
+
+<div align="center">
+  <br>
+  <img width="300" alt="image" src="https://github.com/user-attachments/assets/9f3e4d7f-3fa9-4c06-aba5-7a5255e4178f">
+  <br>
+  <p><i>Impact of per-probe texture resolution on frame time.</i></p>
+</div>
+
 ## Credits
 
 [Dynamic Diffuse Global Illumination with Ray-Traced Irradiance Fields by Majercik et. al. ](https://jcgt.org/published/0008/02/01/)

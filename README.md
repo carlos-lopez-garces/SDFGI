@@ -165,9 +165,31 @@ A rectangular, regularly spaced grid of probes spans the entire bounding box of 
 
 The grid of probes is determined and built at load-time and its resolution cannot change dynamically at runtime.
 
-#### Irradiance & Depth Atlas
+#### Irradiance & Visibility Atlas
+
+The irradiance captured by a probe is encoded into a texture (see Octahedral Encoding). Since we have a 3D grid of probes, the octahedrally-encoded irradiance textures of all the probes are included in a series of atlas textures, one for each z-coordinate of the grid. To locate a probe's irradiance texture, we first locate the "slice" atlas that corresponds to its z-coordinate and then the texture coordinate in that atlas where its texture is.
+
+In addition to the irradiance atlases, we use visibility atlases that are used to discard probes that are occluded from a fragment.
+
+<table>
+  <tr>
+    <th>Irradiance Atlas for 2 z-slices</th>
+    <th>Visibility Atlas for 2 z-slices</th>
+  </tr>
+  <tr>
+    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/5ad0c4a8-c17f-44dc-831b-89cbde267f68"></td>
+    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/ce7f0fa8-5c2e-42ba-92d2-d91427b1baa8"></td>
+  </tr>
+  <tr>
+    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/da1260e9-c927-4334-ae45-0841f5d28a82"></td>
+    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/ea20e582-4ec0-485a-9940-ebe95bb222c6"></td>
+  </tr>
+</table>
+
 
 ##### Octahedral Encoding
+
+Octahedral mapping for irradiance works by projecting the spherical distribution of irradiance around a point (a probe) onto a 2D plane using an octahedral projection. The unit sphere, which contains irradiance values for all possible directions, is first split into an octahedron, with each of its eight triangular faces representing a portion of the sphere. These faces are then unfolded and laid flat onto a 2D texture. To sample irradiance for a given direction, the direction vector is normalized and projected onto the 2D octahedral map, where the UV coordinates are derived from the vector’s x, y, and z components. This mapping ensures a uniform distribution of sampling points across the sphere, minimizing distortions and artifacts. The irradiance values stored in the texture can then be filtered or interpolated efficiently, allowing for smooth and accurate directional irradiance sampling in real time.
 
 <div align="center">
   <br>
@@ -175,6 +197,11 @@ The grid of probes is determined and built at load-time and its resolution canno
   <br>
   <p><i>Octahedral Encoding of sphere normals to a unit square texture.</i></p>
 </div>
+
+To sample irradiance from an octahedral map, we start by normalizing the direction vector for which irradiance is required (typically the normal vector of a fragment). We then convert the normalized direction into a 2D UV coordinate using the octahedral projection formula. For a direction, the 2D coordinates are computed and then remapped to the texture space. Once the UV coordinate is obtained, use it to sample the irradiance value from the octahedral texture.
+
+The following is an example of 4 of our octahedrally-encoded irradiance probes.
+
 <div align="center">
   <br>
   <img width="557" alt="image" src="https://github.com/user-attachments/assets/a938292d-683c-457b-a535-88549a2df4d3">

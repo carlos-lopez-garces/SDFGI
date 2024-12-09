@@ -249,8 +249,12 @@ The GI contribution is incorporated into the shading/illumination model on top o
 
 ## Performance Analysis
 
-TODO: Any performance experiments, graphs etc.
-
 ## Credits
 
-TODO: References here. 
+[Dynamic Diffuse Global Illumination with Ray-Traced Irradiance Fields by Majercik et. al. ](https://jcgt.org/published/0008/02/01/)
+[Godot SDFGI Talk Slides by Juan Linietsky](https://www.docdroid.net/YNntL0e/godot-sdfgi-pdf)
+[Jump Flooding in GPU with Applications to Voronoi Diagram and Distance Transform by Rong & Tan](https://www.comp.nus.edu.sg/~tants/jfa.html)
+[Japanese street at night scene. (CC Attribution)](https://sketchfab.com/3d-models/japanese-street-at-night-fb1bdcd71a5544d699379d2d13dd1171)
+[McGuire Computer Graphics Archive](https://casual-effects.com/data/)
+
+

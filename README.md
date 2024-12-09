@@ -30,45 +30,33 @@ Features include:
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/c83af0df-d13b-4e7c-8249-e6bfea015a21">
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/cd162189-022a-455a-8f84-6bea55d7b1c5">
   <br>
-  <p><i>Colors of curtains reflected off of the floor.</i></p>
+  <p><i>Green from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/410fcfb3-b4bf-4b00-8156-afd8cc9fdd26">
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/f1161c41-0033-4595-8e0e-85492d6e9d35">
   <br>
-  <p><i>Blue from the curtain reflecting off of nearby pillar and floor.</i></p>
+  <p><i>Blue from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/b5f5b37e-97d3-4690-bef2-44b3b294ccb3">
+  <img width="717" alt="image" src="https://github.com/user-attachments/assets/add89436-16d9-43c5-8be4-0794c5570235">
   <br>
-  <p><i>Colors from curtains reflecting off of nearby pillars and floor.</i></p>
+  <p><i>Red from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
-<div align="center">
-  <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/51e61097-b515-4e82-9156-63862205b8d5">
-  <br>
-  <p><i>Color reflected off of nearby banners.</i></p>
-</div>
 
-<div align="center">
-  <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/cf85eee0-3550-4425-9124-a9a4fc814454">
-  <br>
-  <p><i>A wider angle of the scene.</i></p>
-</div>
+## ⚙️ Configuration
 
-<div align="center">
-  <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/8f7d451c-c9df-4f67-8087-b49893c79af5">
-  <br>
-  <p><i>A shot from behind the curtains. Simulated second-bounce GI in regions that aren't directly lit.</i></p>
-</div>
+The magnitude of the GI contribution to the final shaded color can be controlled using the `GI Intensity` slider (0,1).
+
+| Low | Medium | High |
+|--------------|--------------|--------------|
+| ![Screenshot 2024-12-08 204222](https://github.com/user-attachments/assets/b18fd428-398b-46b5-b802-5c520fbed3b6) | ![Screenshot 2024-12-08 204304](https://github.com/user-attachments/assets/72161a84-587f-4822-81b9-9b216aefb683) | ![Screenshot 2024-12-08 204325](https://github.com/user-attachments/assets/f7719670-2b6e-4d69-8af1-b56c15922c73) |
 
 ## 📜 Implementation Details
 

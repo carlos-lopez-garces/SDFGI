@@ -11,6 +11,8 @@
 
 ## 🚀 Overview
 
+Presentations: [Pitch](https://docs.google.com/presentation/d/1aPlUudL1580VITqtrAXmmnXsi4JR-WdlXJBNjOwY6qk/edit?usp=sharing) [Milestone 1](https://docs.google.com/presentation/d/1CGSyz1mFMZtE7p1p0P8-ub7I-UNBfNZd8faB8C6vZPY/edit?usp=sharing) [Milestone 2](https://docs.google.com/presentation/d/1MurpZTf0lUR05kxjy4_mHZ0qdXA8qLQ-06cROCB1KVk/edit?usp=sharing) [Milestone 3](https://docs.google.com/presentation/d/1VaAUuntPKr5uMi0Cq2ASDaPi3_IESDukNNXbSQGgHS8/edit#slide=id.p) [Final](https://docs.google.com/presentation/d/1bIjfXdzw9pElhEJ83sGUOgWKHLqTiwFmdMvlEGqkznM/edit?usp=sharing)
+
 **Signed Distance Field Global Illumination (SDFGI) is a solution to real-time diffuse global illumination for games.**
 
 SDFGI is a variant of Dynamic Diffuse Global Illumination (DDGI) that takes advantage of Signed Distance Fields (SDFs). Since SDFGI uses an SDF of to ray-march the scene, it does not require hardware accelerated ray-tracing, unlike DDGI. Our implementation is inspired by a similar DDGI approach in Godot 4.0, which was released in 2023 and pioneered by Godot's co-creator, Juan Linietsky. 

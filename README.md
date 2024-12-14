@@ -34,6 +34,14 @@ Features include:
 * Arbitrary irradiance probe grid placement
 * Cube-Map DDGI: A non-dynamic version of DDGI that serves as a reference implementation to compare our final results.
 
+## 📺 Video Demo
+
+
+
+https://github.com/user-attachments/assets/570a0e93-2e9f-4e50-bfa1-4f7c10947ff6
+
+
+
 ## 🖼️ Gallery: Sponza
 
 <div align="center">

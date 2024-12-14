@@ -1,4 +1,4 @@
-![mainCoverPhoto](https://github.com/user-attachments/assets/e9a462d7-2068-4fba-8dce-e96ef2cd7070)
+![mainCoverPhoto](Images/main-min.png)
 # Signed Distance Field Global Illumination (SDFGI)
 
 > **University of Pennsylvania, CIS 5650: GPU Programming and Architecture, Final Project**
@@ -14,71 +14,79 @@
 Presentations: [Pitch](https://docs.google.com/presentation/d/1aPlUudL1580VITqtrAXmmnXsi4JR-WdlXJBNjOwY6qk/edit?usp=sharing) [Milestone 1](https://docs.google.com/presentation/d/1CGSyz1mFMZtE7p1p0P8-ub7I-UNBfNZd8faB8C6vZPY/edit?usp=sharing) [Milestone 2](https://docs.google.com/presentation/d/1MurpZTf0lUR05kxjy4_mHZ0qdXA8qLQ-06cROCB1KVk/edit?usp=sharing) [Milestone 3](https://docs.google.com/presentation/d/1VaAUuntPKr5uMi0Cq2ASDaPi3_IESDukNNXbSQGgHS8/edit#slide=id.p) [Final](https://docs.google.com/presentation/d/1bIjfXdzw9pElhEJ83sGUOgWKHLqTiwFmdMvlEGqkznM/edit?usp=sharing)
 
 **Signed Distance Field Global Illumination (SDFGI) is a solution to real-time diffuse global illumination for games.**
+<br>
+<div align="center">
+  <img  alt="image" src="Images/DItoGI-min.png">
+</div>
+<br>
+SDFGI is a variant of Dynamic Diffuse Global Illumination (DDGI) that takes advantage of Signed Distance Fields (SDFs). 
 
-SDFGI is a variant of Dynamic Diffuse Global Illumination (DDGI) that takes advantage of Signed Distance Fields (SDFs). Since SDFGI uses an SDF of to ray-march the scene, it does not require hardware accelerated ray-tracing, unlike DDGI. Our implementation is inspired by a similar DDGI approach in Godot 4.0, which was released in 2023 and pioneered by Godot's co-creator, Juan Linietsky. 
+Since SDFGI uses an SDF of to ray-march the scene, it does not require hardware accelerated ray-tracing, unlike DDGI. Our implementation is inspired by a similar DDGI approach in Godot 4.0, which was released in 2023 and pioneered by Godot's co-creator, Juan Linietsky. 
+<br>
 
 This is a DirectX12 implementation built on top of a starter project provided my Microsoft, MiniEngine, as part of their [DirectX Samples repo](https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine). 
 
 Features include: 
+* Arbitrary glTF loading
 * Probe-based, non-RT global illumination effects, such as interreflections (color "bleeding") and ambient lighting
 * Dynamic lighting: shading of the scene changes in response to changes to the direction of the sun directional light
 * Dynamic objects: animated objects participate in the GI simulation
 * Arbitrary irradiance probe grid placement
 * Cube-Map DDGI: A non-dynamic version of DDGI that serves as a reference implementation to compare our final results.
-* Arbitrary glTF loading
+
+## 📺 Video Demo
+
+
+
+https://github.com/user-attachments/assets/570a0e93-2e9f-4e50-bfa1-4f7c10947ff6
+
+
 
 ## 🖼️ Gallery: Sponza
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/cd162189-022a-455a-8f84-6bea55d7b1c5">
+  <img width="717" alt="image" src="Images/sponza1-min.png">
   <br>
   <p><i>Green from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/f1161c41-0033-4595-8e0e-85492d6e9d35">
+  <img width="717" alt="image" src="Images/sponza2-min.png">
   <br>
   <p><i>Blue from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/add89436-16d9-43c5-8be4-0794c5570235">
+  <img width="717" alt="image" src="Images/sponza3-min.png">
   <br>
   <p><i>Red from the curtain reflecting off of nearby pillars, floor, and arched ceiling.</i></p>
 </div>
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/2498a5ae-a512-42ce-869a-8aae39ad37c1">
+  <img width="717" alt="image" src="Images/sponza4-min.gif">
   <br>
   <p><i>Dynamic scene: walls reflect animated ball's color.</i></p>
 </div>
 
 ## 🖼️ Gallery: San Miguel
 
-![san_miguel](https://github.com/user-attachments/assets/09768a28-4f18-4592-aaeb-1f20239d3c87)
+![san_miguel](Images/sanmiguel-min.png)
 
 ## 🖼️ Gallery: Japanese Street
 
-![image](https://github.com/user-attachments/assets/e81e7b48-f8df-40f8-a2fb-584b6cc6ab50)
+![image](Images/japaneseStreet1-min.png)
 
 
-![image](https://github.com/user-attachments/assets/f2abeb35-8ab2-42ed-96a9-dc63524d8f8c)
-
-
-
-## 🖼️ Gallery: Cornell Box with Sonic
+![image](Images/japaneseStreet2-min.png)
 
 ## ⚙️ Configuration
 
 The magnitude of the GI contribution to the final shaded color can be controlled using the `GI Intensity` slider (0,1).
 
-| Low | Medium | High |
-|--------------|--------------|--------------|
-| ![Screenshot 2024-12-08 204222](https://github.com/user-attachments/assets/b18fd428-398b-46b5-b802-5c520fbed3b6) | ![Screenshot 2024-12-08 204304](https://github.com/user-attachments/assets/72161a84-587f-4822-81b9-9b216aefb683) | ![Screenshot 2024-12-08 204325](https://github.com/user-attachments/assets/f7719670-2b6e-4d69-8af1-b56c15922c73) |
 
 ## 📜 Implementation Details
 
@@ -86,7 +94,7 @@ This section details our implementation of SDFGI, but here is a basic overview:
 
 <div align="center">
   <br>
-  <img width="717" alt="image" src="https://github.com/user-attachments/assets/1cdb5b46-686d-4579-9e24-617e85bfa414">
+  <img width="717" alt="image" src="Images/overview-min.png">
   <br>
   <p><i>Overview of SDFGI.</i></p>
 </div>
@@ -103,7 +111,7 @@ In the **SDF Pass**, a 3D SDF Texture is created that represents the scene. As a
 
 <div align="center">
   <br>
-  <img width="707" alt="image" src="https://github.com/user-attachments/assets/178ad06d-ba91-4075-aaf1-a5cf2da866e1">
+  <img width="707" alt="image" src="Images/sdfoverview-min.png">
   <br>
   <p><i>Overview of SDF Pass.</i></p>
 </div>
@@ -118,7 +126,7 @@ The **3D Jump Flood Algorithm** step will generate an SDF by running multiple co
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/745619b0-d21f-4d23-8e35-5271964041ce">
+  <img width="557" alt="image" src="Images/sdfcomputepasses-min.png">
   <br>
   <p><i>7 Total Compute Passes to compute a 128 * 128 * 128 SDF Texture. Here is the evolution of a single slice of that texture.</i></p>
 </div>
@@ -130,7 +138,7 @@ The final SDF texture can be used to do sphere-marching. From a world space posi
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/ae80a5f0-9f5f-4ff4-b0b3-255ee068d615">
+  <img width="557" alt="image" src="Images/sdfRayMarch-min.png">
   <br>
   <p><i>Ray Marching the Scene.</i></p>
 </div>
@@ -139,7 +147,7 @@ The scene can finally be raymarched. The resolution of the SDF is variable, but 
 
 <div align="center">
   <br>
-  <img width="743" alt="image" src="https://github.com/user-attachments/assets/1dd55144-1b20-4bda-a35a-684e1866f1cd">
+  <img width="743" alt="image" src="Images/sdfcomparison-min.png">
   <br>
   <p><i>Ray-Marched SDF.</i></p>
 </div>
@@ -156,19 +164,15 @@ A rectangular, regularly spaced grid of probes spans the entire bounding box of 
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/d00b2781-a20d-4a17-ab37-5d74b63550e6">
+  <img width="557" alt="image" src="Images/probes-min.png">
   <br>
   <p><i>Probes cover the bounding box of the scene.</i></p>
 </div>
-
 <div align="center">
-  <table>
-    <tr>
-      <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/2adb22ae-9a03-4e10-91e7-516f0f763299"></td>
-      <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/c345fb08-3e84-427d-800a-c4aa9c4bbc04"></td>
-    </tr>
-  </table>
-  <p><i>Each green quad is a probe.</i></p>
+<br>
+<img width="557" alt="image" src="Images/probes2-min.png">
+<p><i>Each green quad is a probe.</i></p>
+<br>
 </div>
 
 The grid of probes is determined and built at load-time and its resolution cannot change dynamically at runtime.
@@ -179,20 +183,14 @@ The irradiance captured by a probe is encoded into a texture (see Octahedral Enc
 
 In addition to the irradiance atlases, we use visibility atlases that are used to discard probes that are occluded from a fragment.
 
-<table>
-  <tr>
-    <th>Irradiance Atlas for 2 z-slices</th>
-    <th>Visibility Atlas for 2 z-slices</th>
-  </tr>
-  <tr>
-    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/5ad0c4a8-c17f-44dc-831b-89cbde267f68"></td>
-    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/ce7f0fa8-5c2e-42ba-92d2-d91427b1baa8"></td>
-  </tr>
-  <tr>
-    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/da1260e9-c927-4334-ae45-0841f5d28a82"></td>
-    <td><img width="557" alt="image" src="https://github.com/user-attachments/assets/ea20e582-4ec0-485a-9940-ebe95bb222c6"></td>
-  </tr>
-</table>
+<div align="center">
+<br>
+<img width="400" alt="image" src="Images/irradianceatlas-min.png">
+<img width="400" alt="image" src="Images/depthatlas-min.png">
+<p><i>Left: Irradiance Atlas for one z-slice. Right: Visibility for one z-slice.</i></p>
+<br>
+</div>
+
 
 
 ##### Octahedral Encoding
@@ -201,7 +199,7 @@ Octahedral mapping for irradiance works by projecting the spherical distribution
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/3f8967bc-7ab6-43a0-8be0-c7063a1d2a44">
+  <img width="557" alt="image" src="Images/octahedraldiagram-min.png">
   <br>
   <p><i>Octahedral Encoding of sphere normals to a unit square texture.</i></p>
 </div>
@@ -212,7 +210,7 @@ The following is an example of 4 of our octahedrally-encoded irradiance probes.
 
 <div align="center">
   <br>
-  <img width="557" alt="image" src="https://github.com/user-attachments/assets/a938292d-683c-457b-a535-88549a2df4d3">
+  <img width="557" alt="image" src="Images/octahedralmap-min.png">
   <br>
   <p><i>Example of Atlas of 4 probes, each with sphere normals encoded as color to visualize the octahedral encoding pattern.</i></p>
 </div>
@@ -226,7 +224,7 @@ Since lighting may change drastically from frame to frame, flickering may be obs
 
 <div align="center">
   <br>
-  <img width="300" alt="image" src="https://github.com/user-attachments/assets/d69301d3-db7b-4737-91f1-a797e16e073c">
+  <img width="300" alt="image" src="Images/probecapture-min.png">
   <br>
   <p><i>How a probe captures irradiance from its surroundings. Source: Godot.</i></p>
 </div>
@@ -243,16 +241,20 @@ To shade a fragment, we need to combine its color obtained from evaluating the d
 
 <div align="center">
   <br>
-  <img width="300" alt="image" src="https://github.com/user-attachments/assets/d877e62a-3d75-4c36-b20d-1947883d7815">
+  <img width="300" alt="image" src="Images/probesample.png">
   <br>
   <p><i>Interpolating irradiance from probe. Source: Godot.</i></p>
 </div>
 
 The GI contribution is incorporated into the shading/illumination model on top of the direct illumination.
 
-| DI | GI | DI + GI x Albedo |
-|--------------|--------------|--------------|
-| ![Screenshot 2024-12-08 225309](https://github.com/user-attachments/assets/9f72255d-a9d3-4644-a2c4-ed090866edf2) | ![Screenshot 2024-12-08 225329](https://github.com/user-attachments/assets/4dfb5e07-3d3d-48c7-93e0-ff55e45e07c2) | ![Screenshot 2024-12-08 225257](https://github.com/user-attachments/assets/376fa7e9-9172-43fa-86b5-db7037c43f82) |
+<div align="center">
+  <br>
+  <img alt="image" src="Images/GIcomparison-min.png">
+  <br>
+  <p><i>From left to right: DI only, GI only, DI + GI * Albedo</i></p>
+</div>
+
 
 ## Performance Analysis
 

@@ -42,6 +42,17 @@ https://github.com/user-attachments/assets/570a0e93-2e9f-4e50-bfa1-4f7c10947ff6
 
 
 
+## 🖼️ Gallery: San Miguel
+
+![san_miguel](Images/sanmiguel-min.png)
+
+## 🖼️ Gallery: Japanese Street
+
+![image](Images/japaneseStreet1-min.png)
+
+
+![image](Images/japaneseStreet2-min.png)
+
 ## 🖼️ Gallery: Sponza
 
 <div align="center">
@@ -71,22 +82,6 @@ https://github.com/user-attachments/assets/570a0e93-2e9f-4e50-bfa1-4f7c10947ff6
   <br>
   <p><i>Dynamic scene: walls reflect animated ball's color.</i></p>
 </div>
-
-## 🖼️ Gallery: San Miguel
-
-![san_miguel](Images/sanmiguel-min.png)
-
-## 🖼️ Gallery: Japanese Street
-
-![image](Images/japaneseStreet1-min.png)
-
-
-![image](Images/japaneseStreet2-min.png)
-
-## ⚙️ Configuration
-
-The magnitude of the GI contribution to the final shaded color can be controlled using the `GI Intensity` slider (0,1).
-
 
 ## 📜 Implementation Details
 
